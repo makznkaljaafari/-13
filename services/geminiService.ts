@@ -4,11 +4,9 @@ import { Sale, Expense, ChatMessage, QatCategory, AppError } from "../types";
 import { logger } from "./loggerService";
 
 const getAIClient = () => {
-  const apiKey = process.env.API_KEY || (window as any).process?.env?.API_KEY;
-  if (!apiKey) {
-    logger.warn("AI API Key is missing. Gemini features will be limited.");
-  }
-  return new GoogleGenAI({ apiKey: apiKey || "NO_KEY" });
+  const apiKey = (window as any).process?.env?.API_KEY || process.env.API_KEY;
+  // استخدام مفتاح وهمي إذا كان المفتاح مفقوداً لمنع انهيار التهيئة
+  return new GoogleGenAI({ apiKey: apiKey || "MISSING_KEY" });
 };
 
 let isQuotaExhausted = false;
@@ -38,10 +36,16 @@ export const aiTools: FunctionDeclaration[] = [
   }
 ];
 
-async function retryAI<T>(fn: () => Promise<T>, retries = 2, delay = 2000): Promise<T> {
+async function retryAI<T>(fn: () => Promise<T>, retries = 1, delay = 2000): Promise<T> {
+  const apiKey = (window as any).process?.env?.API_KEY || process.env.API_KEY;
+  if (!apiKey || apiKey === "MISSING_KEY") {
+    throw new AppError("يرجى ضبط مفتاح API في الإعدادات لتفعيل الذكاء الاصطناعي.", "NO_API_KEY", 401, true);
+  }
+
   if (isQuotaExhausted && Date.now() < quotaResetTime) {
     throw new AppError("المحاسب الذكي استنفد طاقته حالياً. يرجى الانتظار دقيقة.", "QUOTA_LOCK", 429, true);
   }
+  
   try {
     const result = await fn();
     isQuotaExhausted = false; 
@@ -61,11 +65,8 @@ async function retryAI<T>(fn: () => Promise<T>, retries = 2, delay = 2000): Prom
 }
 
 export const getChatResponse = async (message: string, history: ChatMessage[], context: any) => {
-  const apiKey = process.env.API_KEY || (window as any).process?.env?.API_KEY;
-  if (!apiKey) throw new AppError("يرجى ضبط مفتاح API للذكاء الاصطناعي في الإعدادات.", "NO_API_KEY", 401, true);
-
   const ai = getAIClient();
-  const ctxStr = `السياق: ${context.customers?.length} عملاء، ${context.suppliers?.length} موردين.`;
+  const ctxStr = `السياق: ${context.customers?.length || 0} عملاء، ${context.suppliers?.length || 0} موردين.`;
 
   try {
     const response = await retryAI(async () => {
@@ -83,13 +84,13 @@ export const getChatResponse = async (message: string, history: ChatMessage[], c
     return response;
   } catch(e: any) {
     logger.error("AI Error:", e);
-    throw new AppError("فشل في معالجة الطلب عبر Gemini.", "AI_ERROR", 500, true);
+    throw e;
   }
 };
 
 export const getFinancialForecast = async (sales: Sale[], expenses: Expense[], categories: QatCategory[]) => {
-  const apiKey = process.env.API_KEY || (window as any).process?.env?.API_KEY;
-  if (!apiKey) return "الذكاء الاصطناعي غير مفعل حالياً.";
+  const apiKey = (window as any).process?.env?.API_KEY || process.env.API_KEY;
+  if (!apiKey || apiKey === "MISSING_KEY") return "الذكاء الاصطناعي غير مفعل حالياً.";
 
   const ai = getAIClient();
   try {
