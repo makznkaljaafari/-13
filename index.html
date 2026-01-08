@@ -15,13 +15,10 @@
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/628/628283.png">
     
     <script>
-      // تأمين كائن process لمنع أخطاء المكتبات
-      window.process = { 
-        env: { 
-          API_KEY: "",
-          NODE_ENV: "production"
-        } 
-      };
+      // تأمين كائن process دون الكتابة فوق المفاتيح الموجودة
+      window.process = window.process || {};
+      window.process.env = window.process.env || {};
+      window.process.env.NODE_ENV = window.process.env.NODE_ENV || "production";
 
       // وظيفة إخفاء السبنر اليدوية للطوارئ
       window.forceHideSpinner = function() {
@@ -29,16 +26,29 @@
         if (spinner) {
           spinner.style.opacity = '0';
           setTimeout(() => { spinner.style.display = 'none'; }, 500);
-          console.log('Failsafe: Loading spinner forced hidden.');
         }
       };
 
-      // إذا مر 12 ثانية ولم يختفِ السبنر، أخفه يدوياً
-      setTimeout(window.forceHideSpinner, 12000);
+      // إذا استمرت الشاشة البيضاء أكثر من 15 ثانية، اظهر رسالة خطأ
+      setTimeout(() => {
+        const root = document.getElementById('root');
+        if (root && root.innerHTML === "") {
+          console.error("React failed to mount within timeout.");
+          const spinner = document.getElementById('html-loading-spinner');
+          if (spinner) {
+            spinner.innerHTML = `
+              <div style="color: #dc2626; text-align: center; padding: 20px; font-family: sans-serif;">
+                <h2 style="font-weight: 900; margin-bottom:10px;">⚠️ حدث خطأ أثناء الإقلاع</h2>
+                <p style="font-size: 14px; color: #64748b; margin-bottom:20px;">تعذر تشغيل محرك React. يرجى تحديث الصفحة.</p>
+                <button onclick="window.location.reload()" style="background:#1e3a8a; color:white; border:none; padding:12px 24px; border-radius:12px; font-weight:bold; cursor:pointer;">تحديث النظام 🔄</button>
+              </div>
+            `;
+          }
+        }
+      }, 15000);
 
       window.onerror = function(msg, url, lineNo, columnNo, error) {
-        console.error('Critical App Error:', msg, error);
-        window.forceHideSpinner();
+        console.error('Captured Error:', msg, error);
         return false;
       };
     </script>
@@ -63,14 +73,8 @@
     </script>
 
     <style>
-      :root {
-        --color-background-page: #f0f9ff; 
-        --color-text-primary: #001e4d;
-      }
-      .dark {
-        --color-background-page: #020617;
-        --color-text-primary: #f8fafc;
-      }
+      :root { --color-background-page: #f0f9ff; --color-text-primary: #001e4d; }
+      .dark { --color-background-page: #020617; --color-text-primary: #f8fafc; }
       * { font-family: 'Tajawal', sans-serif; -webkit-tap-highlight-color: transparent; }
       body { background-color: var(--color-background-page); color: var(--color-text-primary); margin: 0; overflow-x: hidden; }
 
@@ -88,12 +92,12 @@
       .dark #html-loading-spinner { background: #020617; }
 
       .spinner-box {
-        width: 50px;
-        height: 50px;
-        border: 5px solid rgba(30, 58, 138, 0.1);
+        width: 60px;
+        height: 60px;
+        border: 6px solid rgba(30, 58, 138, 0.1);
         border-top-color: #1e3a8a;
         border-radius: 50%;
-        animation: spin 1s linear infinite;
+        animation: spin 0.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
       }
       @keyframes spin { to { transform: rotate(360deg); } }
     </style>
@@ -119,12 +123,11 @@
     
     <div id="html-loading-spinner">
       <div class="spinner-box"></div>
-      <p style="margin-top: 20px; font-weight: 800; color: #1e3a8a; font-size: 14px; text-align: center; padding: 0 20px;">
+      <p style="margin-top: 24px; font-weight: 900; color: #1e3a8a; font-size: 16px; text-align: center; letter-spacing: -0.02em;">
         جاري تشغيل محرك الشويع الذكي...
       </p>
     </div>
 
-    <!-- تأكد من استخدام النوع module واستخدام الامتداد .tsx الذي سيقوم المترجم بمعالجته -->
     <script type="module" src="index.tsx"></script>
 </body>
 </html>

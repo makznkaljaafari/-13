@@ -12,7 +12,7 @@ import { supabase } from '../services/supabaseClient';
 const SyncManager: React.FC = () => {
   const { setIsLoggedIn, setUser, setIsCheckingSession } = useAuth();
   const { loadAllData } = useData();
-  const { navigate, currentPage, addNotification } = useUI();
+  const { navigate, currentPage } = useUI();
   const initializedRef = useRef(false);
 
   useEffect(() => {
@@ -21,13 +21,13 @@ const SyncManager: React.FC = () => {
 
     let isMounted = true;
     
-    // تقليل وقت الانتظار ليكون أسرع في الاستجابة
+    // مؤقت أمان لفك قفل الواجهة مهما حدث في السيرفر
     const authTimeout = setTimeout(() => {
       if (isMounted) {
-        console.warn("Auth check timed out, forcing UI unlock.");
+        console.warn("Auth check timeout - forcing UI unlock");
         setIsCheckingSession(false);
       }
-    }, 6000);
+    }, 5000);
 
     const initAuth = async () => {
       try {
@@ -37,22 +37,19 @@ const SyncManager: React.FC = () => {
 
         if (session && !error) {
           setIsLoggedIn(true);
-          // تحميل البيانات في الخلفية لعدم تعطيل الواجهة
-          loadAllData(session.user.id, true);
+          // لا ننتظر تحميل البيانات بالكامل لفك القفل، نحملها في الخلفية
+          loadAllData(session.user.id, true).catch(() => {});
           if (currentPage === 'login') navigate('dashboard');
         } else {
           setIsLoggedIn(false);
           if (currentPage !== 'login') navigate('login');
         }
-      } catch (err: any) {
-        console.error("Auth Initialization Failed:", err);
-        if (isMounted) setIsLoggedIn(false);
+      } catch (err) {
+        console.error("Session Init Error:", err);
       } finally {
         if (isMounted) {
           clearTimeout(authTimeout);
           setIsCheckingSession(false);
-          // استدعاء دالة إخفاء السبنر من index.html للتأكيد
-          if ((window as any).forceHideSpinner) (window as any).forceHideSpinner();
         }
       }
     };
@@ -63,7 +60,6 @@ const SyncManager: React.FC = () => {
       if (!isMounted) return;
       if (session) {
         setIsLoggedIn(true);
-        loadAllData(session.user.id, true);
         if (currentPage === 'login') navigate('dashboard');
       } else if (event === 'SIGNED_OUT') {
         setIsLoggedIn(false);
@@ -77,7 +73,7 @@ const SyncManager: React.FC = () => {
       clearTimeout(authTimeout);
       subscription.unsubscribe();
     };
-  }, [loadAllData, navigate, setIsLoggedIn, setUser, setIsCheckingSession, currentPage, addNotification]);
+  }, [loadAllData, navigate, setIsLoggedIn, setUser, setIsCheckingSession, currentPage]);
 
   return null;
 };
