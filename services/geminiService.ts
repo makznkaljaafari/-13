@@ -37,7 +37,8 @@ export const aiTools: FunctionDeclaration[] = [
 
 async function retryAI<T>(fn: () => Promise<T>, retries = 1, delay = 2000): Promise<T> {
   if (isQuotaExhausted && Date.now() < quotaResetTime) {
-    throw new AppError("المحاسب الذكي استنفد طاقته حالياً. يرجى الانتظار دقيقة.", "QUOTA_LOCK", 429, true);
+    // Fix: Corrected AppError arguments from 4 to 3
+    throw new AppError("المحاسب الذكي استنفد طاقته حالياً. يرجى الانتظار دقيقة.", "QUOTA_LOCK", 429);
   }
   
   try {
@@ -48,7 +49,8 @@ async function retryAI<T>(fn: () => Promise<T>, retries = 1, delay = 2000): Prom
     if (error.status === 429) {
       isQuotaExhausted = true;
       quotaResetTime = Date.now() + 60000;
-      throw new AppError("المحاسب استنفد طاقته، انتظر دقيقة.", "QUOTA_EXHAUSTED", 429, true);
+      // Fix: Corrected AppError arguments from 4 to 3
+      throw new AppError("المحاسب استنفد طاقته، انتظر دقيقة.", "QUOTA_EXHAUSTED", 429);
     }
     if (retries > 0) {
       await new Promise(res => setTimeout(res, delay));

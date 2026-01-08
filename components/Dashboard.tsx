@@ -9,6 +9,8 @@ import { InstallPWAButton } from './ui/InstallPWAButton';
 import { StatCard } from './ui/atoms/StatCard';
 import { FinancialChart } from './ui/molecules/FinancialChart';
 import { QuickActionsGrid } from './dashboard/QuickActionsGrid';
+import { DetailedBalanceModal } from './dashboard/DetailedBalanceModal';
+import { Currency } from '../types';
 
 const Dashboard: React.FC = memo(() => {
   const { navigate, isSyncing, resolvedTheme } = useUI();
@@ -18,7 +20,7 @@ const Dashboard: React.FC = memo(() => {
     loadAllData 
   } = useData();
   
-  const [activeCurrency, setActiveCurrency] = useState<'YER' | 'SAR' | 'OMR'>('YER');
+  const [activeCurrency, setActiveCurrency] = useState<Currency>('YER');
   const [showFullDetails, setShowFullDetails] = useState(false);
 
   const currentSummary = useMemo(() => {
@@ -27,22 +29,10 @@ const Dashboard: React.FC = memo(() => {
   }, [customers, suppliers, sales, purchases, vouchers, expenses, activeCurrency]);
 
   const detailedBreakdown = useMemo(() => {
-    const cur = activeCurrency;
-    const cashSales = sales.filter(s => s.status === 'نقدي' && s.currency === cur && !s.is_returned).reduce((sum, s) => sum + s.total, 0);
-    const voucherReceipts = vouchers.filter(v => v.type === 'قبض' && v.currency === cur).reduce((sum, v) => sum + v.amount, 0);
-    const cashPurchases = purchases.filter(p => p.status === 'نقدي' && p.currency === cur && !p.is_returned).reduce((sum, p) => sum + p.total, 0);
-    const voucherPayments = vouchers.filter(v => v.type === 'دفع' && v.currency === cur).reduce((sum, v) => sum + v.amount, 0);
-    const totalExp = (expenses || []).filter(e => e.currency === cur).reduce((sum, e) => sum + e.amount, 0);
-
-    return [
-      { item: 'نقدية مبيعات المعرض (كاش)', plus: cashSales, minus: 0 },
-      { item: 'سندات قبض نقدية (وارد)', plus: voucherReceipts, minus: 0 },
-      { item: 'مشتريات نقدية مدفوعة (صادر)', plus: 0, minus: cashPurchases },
-      { item: 'سندات دفع نقدية (صادر)', plus: 0, minus: voucherPayments },
-      { item: 'إجمالي المصاريف التشغيلية', plus: 0, minus: totalExp },
-      { item: 'مديونيات العملاء المستحقة (لنا)', plus: currentSummary.assets, minus: 0 },
-      { item: 'مديونيات الموردين المستحقة (علينا)', plus: 0, minus: currentSummary.liabilities },
-    ];
+    return financeService.getDetailedCashBreakdown(
+      activeCurrency, sales, purchases, vouchers, expenses, 
+      currentSummary.assets, currentSummary.liabilities
+    );
   }, [sales, vouchers, purchases, expenses, activeCurrency, currentSummary]);
 
   const handleRefreshData = useCallback(() => {
@@ -82,7 +72,7 @@ const Dashboard: React.FC = memo(() => {
                 {(['YER', 'SAR', 'OMR'] as const).map(cur => (
                   <button 
                     key={cur} 
-                    onClick={() => setActiveCurrency(cur)} 
+                    onClick={() => setActiveCurrency(cur as Currency)} 
                     className={`px-2 py-1 rounded-md font-black text-[8px] transition-all ${activeCurrency === cur ? 'bg-white text-brandPrimary' : 'text-white/40'}`}
                   >{cur}</button>
                 ))}
@@ -121,87 +111,13 @@ const Dashboard: React.FC = memo(() => {
         </div>
       </div>
 
-      {/* مودال تفاصيل السيولة - تصميم Excel المطور */}
-      {showFullDetails && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4 bg-slate-900/80 backdrop-blur-md animate-in fade-in">
-          <div className="bg-white dark:bg-slate-900 w-full max-w-2xl max-h-[90vh] rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col border-4 border-brandPrimary">
-            
-            {/* رأس المودال */}
-            <div className="p-6 bg-brandPrimary text-white flex justify-between items-center">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center text-2xl">📋</div>
-                <div>
-                   <h3 className="font-black text-lg">تحليل الميزانية (Excel Mode)</h3>
-                   <p className="text-[9px] opacity-70 font-bold uppercase tracking-widest">Global Financial Balance • {activeCurrency}</p>
-                </div>
-              </div>
-              <button 
-                onClick={() => setShowFullDetails(false)} 
-                className="w-10 h-10 bg-white/10 hover:bg-rose-500 rounded-full flex items-center justify-center font-black transition-colors"
-              >✕</button>
-            </div>
-
-            {/* محتوى الجدول المنظم */}
-            <div className="flex-1 overflow-auto p-4 sm:p-6 no-scrollbar">
-              <table className="excel-table">
-                <thead>
-                  <tr>
-                    <th className="w-10">#</th>
-                    <th className="text-right">بيان العملية المالية</th>
-                    <th>إضافة (+)</th>
-                    <th>خصم (-)</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {detailedBreakdown.map((row, idx) => (
-                    <tr key={idx}>
-                      <td className="text-center opacity-40 tabular-nums">{idx + 1}</td>
-                      <td className="text-brandPrimary dark:text-blue-300">{row.item}</td>
-                      <td className={`cell-plus tabular-nums ${row.plus === 0 ? 'opacity-10' : ''}`}>
-                        {row.plus > 0 ? row.plus.toLocaleString() : '0'}
-                      </td>
-                      <td className={`cell-minus tabular-nums ${row.minus === 0 ? 'opacity-10' : ''}`}>
-                        {row.minus > 0 ? row.minus.toLocaleString() : '0'}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-                <tfoot>
-                  <tr className="bg-slate-900 text-white font-black">
-                    <td colSpan={2} className="p-5 text-center text-sm uppercase tracking-widest border-l border-white/10">الصافي الإجمالي ({activeCurrency})</td>
-                    <td colSpan={2} className="p-5 text-center text-2xl tabular-nums tracking-tighter">
-                      {currentSummary.net.toLocaleString()}
-                    </td>
-                  </tr>
-                </tfoot>
-              </table>
-
-              <div className="mt-6 flex items-center gap-3 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-2xl border border-blue-200 dark:border-blue-800">
-                 <span className="text-xl">💡</span>
-                 <p className="text-[10px] font-bold text-blue-800 dark:text-blue-300 leading-relaxed">
-                   هذا الجدول يوضح كافة التدفقات النقدية والديون النشطة. تم احتساب الصافي بناءً على (الكاش + مديونية العملاء - مديونية الموردين).
-                 </p>
-              </div>
-            </div>
-
-            {/* أزرار التحكم */}
-            <div className="p-4 bg-slate-50 dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 flex gap-3">
-              <button 
-                onClick={() => window.print()} 
-                className="flex-1 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 text-slate-800 dark:text-white p-4 rounded-2xl font-black text-xs transition-all flex items-center justify-center gap-2"
-              >
-                <span>🖨️</span> طباعة التقرير
-              </button>
-              <button 
-                onClick={() => setShowFullDetails(false)} 
-                className="flex-[2] bg-brandPrimary hover:bg-brandSecondary text-white p-4 rounded-2xl font-black text-xs shadow-lg transition-all flex items-center justify-center gap-2"
-              >
-                <span>✅</span> إغلاق العرض
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <DetailedBalanceModal 
+        isOpen={showFullDetails} 
+        onClose={() => setShowFullDetails(false)} 
+        activeCurrency={activeCurrency} 
+        netAmount={currentSummary.net} 
+        breakdown={detailedBreakdown} 
+      />
     </PageLayout>
   );
 });

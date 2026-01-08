@@ -50,9 +50,8 @@ export const useBackup = (user: any, isDataLoaded: boolean, isOnline: boolean, d
       if (shouldBackup) {
         hasCheckedBackupThisSession.current = true;
         try {
-          const backupData = await dataService.prepareBackupPackage(user.id, {
-            profile: user, ...dataContext
-          });
+          // Fix: Call prepareBackupPackage with correct number of arguments (1 instead of 2)
+          const backupData = await dataService.prepareBackupPackage(user.id);
           const success = exportService.exportToJson(backupData, `alshwaia_auto_backup_${frequency}`);
           if (success) {
             const nowISO = now.toISOString();

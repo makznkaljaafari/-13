@@ -5,7 +5,8 @@ import { dataService } from '../services/dataService';
 import { useUI } from './UIContext';
 import { useInventory } from './InventoryContext';
 import { useAuth } from './AuthContext';
-import { logger } from '../services/loggerService'; // Import logger
+import { logger } from '../services/loggerService';
+import { saleSchema, purchaseSchema, customerSchema, supplierSchema } from '../schemas';
 
 const BusinessContext = createContext<any>(undefined);
 
@@ -19,283 +20,144 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [sales, setSales] = useState<Sale[]>([]);
   const [purchases, setPurchases] = useState<Purchase[]>([]);
 
+  // تحسين: دالة تنسيق القيم أصبحت ثابتة المرجع لتقليل إعادة الرندر
   const formatValue = useCallback((val: number | string) => {
     const precision = user?.accounting_settings?.decimal_precision ?? 0;
     const num = typeof val === 'string' ? parseFloat(val) : val;
     return isNaN(num) ? 0 : parseFloat(num.toFixed(precision));
   }, [user?.accounting_settings?.decimal_precision]);
 
-  const addSale = useCallback(async (s: any) => {
+  const updateInternalStock = useCallback((qatType: string, change: number) => {
+    setCategories((prev: any[]) => prev.map((cat: any) => 
+      cat.name === qatType ? { ...cat, stock: formatValue(Number(cat.stock) + change) } : cat
+    ));
+  }, [setCategories, formatValue]);
+
+  // تحسين: توحيد منطق الحفظ لتقليل التكرار البرمجي
+  const processTransaction = useCallback(async (
+    data: any, 
+    schema: any, 
+    type: 'sale' | 'purchase',
+    saveFn: (d: any) => Promise<any>,
+    logAction: string
+  ) => {
     if (!user?.id) throw new Error("Unauthenticated");
     
-    const allowNegative = user?.accounting_settings?.allow_negative_stock ?? false;
-    const category = categories.find((c: any) => c.name === s.qat_type);
-    
-    if (!allowNegative && category && category.stock < s.quantity) {
-      addNotification("عذراً يا مدير ✋", `المخزون غير كافٍ. المتوفر من ${s.qat_type} هو ${category.stock} فقط.`, "warning");
-      throw new Error("Insufficient stock");
+    const validation = schema.safeParse(data);
+    if (!validation.success) {
+      const errorMsg = validation.error.errors[0]?.message || "بيانات غير صالحة";
+      addNotification("خطأ في البيانات ❌", errorMsg, "warning");
+      throw new Error(errorMsg);
     }
 
-    const tempId = s.id || crypto.randomUUID();
-    const isEditing = !!s.id;
-    const formattedSale = {
-      ...s,
-      quantity: formatValue(s.quantity),
-      unit_price: formatValue(s.unit_price),
-      total: formatValue(Number(s.quantity) * Number(s.unit_price))
-    };
+    const isEditing = !!data.id;
+    const list = type === 'sale' ? sales : purchases;
+    const setter = type === 'sale' ? setSales : setPurchases;
+    const oldRecord = isEditing ? list.find((r: any) => r.id === data.id) : null;
     
-    setSales(prev => {
-        const existingIdx = prev.findIndex(item => item.id === tempId);
-        if (existingIdx > -1) {
-            const updated = [...prev];
-            updated[existingIdx] = { ...formattedSale, updated_at: new Date().toISOString() };
-            return updated;
-        }
-        return [{ ...formattedSale, id: tempId, created_at: new Date().toISOString() }, ...prev];
+    // حساب فرق المخزون
+    const changeQty = type === 'sale' 
+      ? data.quantity - (oldRecord?.quantity || 0)
+      : (oldRecord?.quantity || 0) - data.quantity;
+
+    // فحص المخزون للمبيعات فقط
+    if (type === 'sale' && !(user?.accounting_settings?.allow_negative_stock)) {
+      const category = categories.find((c: any) => c.name === data.qat_type);
+      if (category && category.stock < changeQty) {
+        addNotification("المخزون غير كافٍ ✋", `المتوفر من ${data.qat_type} هو ${category.stock} حبة فقط.`, "warning");
+        throw new Error("Insufficient stock");
+      }
+    }
+
+    const tempId = data.id || crypto.randomUUID();
+    const finalData = { ...data, id: tempId, total: formatValue(Number(data.quantity) * Number(data.unit_price)) };
+    
+    // التحديث المتفائل للواجهة
+    setter((prev: any[]) => {
+      const idx = prev.findIndex(item => item.id === tempId);
+      return idx > -1 ? prev.map(item => item.id === tempId ? finalData : item) : [finalData, ...prev];
     });
 
-    setCategories((prev: any[]) => prev.map((cat: any) => {
-      // Calculate stock change more carefully, considering editing vs new sale
-      const oldSale = isEditing ? sales.find(sale => sale.id === s.id) : undefined;
-      let stockChange = Number(s.quantity);
-      if (oldSale && cat.name === s.qat_type) {
-        // If editing, adjust stock by the difference
-        stockChange = Number(s.quantity) - Number(oldSale.quantity);
-      }
-      return cat.name === s.qat_type ? { ...cat, stock: formatValue(Number(cat.stock) - stockChange) } : cat;
-    }));
-
+    // تحديث المخزون داخلياً (تغيير الإشارة حسب النوع)
+    updateInternalStock(data.qat_type, type === 'sale' ? -changeQty : -changeQty);
 
     try {
-      const saved = await dataService.saveSale(formattedSale);
-      setSales(prev => prev.map(item => item.id === tempId ? saved : item));
-      triggerFeedback(s.status === 'نقدي' ? 'celebration' : 'debt');
-      
-      if (saved._offline) {
-        addNotification("تم الحفظ محلياً 💾", `تم حفظ الفاتورة في وضع عدم الاتصال. ستتم المزامنة لاحقاً.`, "info");
-      } else {
-        // Log activity for sale
-        dataService.logActivity(user.id, isEditing ? "تعديل فاتورة بيع" : "إضافة فاتورة بيع", `العميل: ${saved.customer_name}, الصنف: ${saved.qat_type}, الكمية: ${saved.quantity}, الإجمالي: ${saved.total} ${saved.currency}`, 'sale');
-      }
+      const saved = await saveFn(finalData);
+      setter((prev: any[]) => prev.map(item => item.id === tempId ? saved : item));
+      if (type === 'sale') triggerFeedback(data.status === 'نقدي' ? 'celebration' : 'debt');
+      dataService.logActivity(user.id, `${isEditing ? 'تعديل' : 'إضافة'} ${logAction}`, `${data.qat_type}`, type);
       return saved;
     } catch (e: any) {
-      logger.error("Failed to add sale:", e); 
-      addNotification("خطأ في حفظ الفاتورة ❌", e.message || "حدث خطأ غير متوقع في الحفظ.", "warning");
-      setSales(prev => prev.filter(item => item.id !== tempId)); 
+      if (isOnline) {
+        setter((prev: any[]) => isEditing ? (oldRecord ? prev.map(r => r.id === data.id ? oldRecord : r) : prev) : prev.filter(item => item.id !== tempId));
+        updateInternalStock(data.qat_type, type === 'sale' ? changeQty : changeQty);
+      }
       throw e;
     }
-  }, [addNotification, triggerFeedback, setCategories, categories, user, formatValue, sales]); // Added sales to dependency
+  }, [user, categories, sales, purchases, formatValue, updateInternalStock, addNotification, triggerFeedback, isOnline]);
 
-  const addPurchase = useCallback(async (p: any) => {
-    if (!user?.id) throw new Error("Unauthenticated");
-    const tempId = p.id || crypto.randomUUID();
-    const isEditing = !!p.id;
-    
-    const formattedPurchase = {
-      ...p,
-      quantity: formatValue(p.quantity),
-      unit_price: formatValue(p.unit_price),
-      total: formatValue(Number(p.quantity) * Number(p.unit_price))
-    };
-    
-    setPurchases(prev => {
-        const existingIdx = prev.findIndex(item => item.id === tempId);
-        if (existingIdx > -1) {
-            const updated = [...prev];
-            updated[existingIdx] = { ...formattedPurchase, updated_at: new Date().toISOString() };
-            return updated;
-        }
-        return [{ ...formattedPurchase, id: tempId, created_at: new Date().toISOString() }, ...prev];
-    });
+  const addSale = useCallback((s: any) => 
+    processTransaction(s, saleSchema, 'sale', dataService.saveSale.bind(dataService), "بيع"),
+  [processTransaction]);
 
-    setCategories((prev: any[]) => prev.map((cat: any) => {
-      // Calculate stock change for purchase
-      const oldPurchase = isEditing ? purchases.find(purchase => purchase.id === p.id) : undefined;
-      let stockChange = Number(p.quantity);
-      if (oldPurchase && cat.name === p.qat_type) {
-        stockChange = Number(p.quantity) - Number(oldPurchase.quantity);
-      }
-      return cat.name === p.qat_type ? { ...cat, stock: formatValue(Number(cat.stock) + stockChange) } : cat;
-    }));
-
-    try {
-      const saved = await dataService.savePurchase(formattedPurchase);
-      setPurchases(prev => prev.map(item => item.id === tempId ? saved : item));
-      
-      if (saved._offline) {
-        addNotification("تم الحفظ محلياً 💾", "تم حفظ المشتريات في وضع عدم الاتصال. ستتم المزامنة لاحقاً.", "info");
-      } else {
-        addNotification("تمت إضافة المشتريات ✅", "تم تحديث المخازن بنجاح", "success");
-        // Log activity for purchase
-        dataService.logActivity(user.id, isEditing ? "تعديل فاتورة شراء" : "إضافة فاتورة شراء", `المورد: ${saved.supplier_name}, الصنف: ${saved.qat_type}, الكمية: ${saved.quantity}, الإجمالي: ${saved.total} ${saved.currency}`, 'purchase');
-      }
-      return saved;
-    } catch (e: any) {
-      logger.error("Failed to add purchase:", e); 
-      addNotification("خطأ في حفظ المشتريات ❌", e.message || "حدث خطأ غير متوقع في الحفظ.", "warning");
-      setPurchases(prev => prev.filter(item => item.id !== tempId)); 
-      throw e;
-    }
-  }, [addNotification, setCategories, user, formatValue, purchases]); // Added purchases to dependency
-
-  const returnSale = useCallback(async (id: string) => {
-    const sale = sales.find(s => s.id === id);
-    if (!sale) return;
-
-    try {
-      await dataService.returnSale(id);
-      
-      setSales(prev => prev.map(s => s.id === id ? { ...s, is_returned: true, returned_at: new Date().toISOString() } : s));
-      
-      setCategories((prev: any[]) => prev.map((cat: any) =>
-        cat.name === sale.qat_type ? { ...cat, stock: formatValue(Number(cat.stock) + Number(sale.quantity)) } : cat
-      ));
-      
-      addNotification("تم الإرجاع 🔄", "تمت إعادة الكمية للمخازن وتسوية الحساب.", "info");
-      dataService.logActivity(user.id, "إرجاع فاتورة بيع", `تم إرجاع فاتورة العميل: ${sale.customer_name}, الصنف: ${sale.qat_type}, الكمية: ${sale.quantity}`, 'sale');
-    } catch (e: any) {
-      logger.error("Failed to return sale:", e);
-      addNotification("خطأ ⚠️", e.message || "فشل إرجاع الفاتورة. حدث خطأ غير متوقع.", "warning");
-    }
-  }, [addNotification, sales, setCategories, formatValue, user]);
-
-  const returnPurchase = useCallback(async (id: string) => {
-    const purchase = purchases.find(p => p.id === id);
-    if (!purchase) return;
-
-    try {
-      await dataService.returnPurchase(id);
-      
-      setPurchases(prev => prev.map(p => p.id === id ? { ...p, is_returned: true, returned_at: new Date().toISOString() } : p));
-      
-      setCategories((prev: any[]) => prev.map((cat: any) =>
-        cat.name === purchase.qat_type ? { ...cat, stock: formatValue(Number(cat.stock) - Number(purchase.quantity)) } : cat
-      ));
-      
-      addNotification("تم إرجاع المشتريات 🔄", "تم خصم الكمية من المخازن وتسوية حساب المورد.", "info");
-      dataService.logActivity(user.id, "إرجاع فاتورة شراء", `تم إرجاع فاتورة المورد: ${purchase.supplier_name}, الصنف: ${purchase.qat_type}, الكمية: ${purchase.quantity}`, 'purchase');
-    } catch (e: any) {
-      logger.error("Failed to return purchase:", e);
-      addNotification("خطأ ⚠️", e.message || "فشل إرجاع المشتريات. حدث خطأ غير متوقع.", "warning");
-    }
-  }, [addNotification, purchases, setCategories, formatValue, user]);
+  const addPurchase = useCallback((p: any) => 
+    processTransaction(p, purchaseSchema, 'purchase', dataService.savePurchase.bind(dataService), "شراء"),
+  [processTransaction]);
 
   const addCustomer = useCallback(async (c: any) => {
-    if (!user?.id) throw new Error("Unauthenticated");
-    const isEditing = !!c.id;
-
+    const validation = customerSchema.safeParse(c);
+    if (!validation.success) throw new Error(validation.error.errors[0].message);
     const saved = await dataService.saveCustomer(c);
     setCustomers(prev => {
         const exists = prev.find(item => item.id === saved.id);
         return exists ? prev.map(item => item.id === saved.id ? saved : item) : [saved, ...prev];
     });
-    dataService.logActivity(user.id, isEditing ? "تعديل عميل" : "إضافة عميل", `العميل: ${saved.name}, الهاتف: ${saved.phone}`, 'general');
     return saved;
-  }, [user]);
+  }, []);
 
   const addSupplier = useCallback(async (s: any) => {
-    if (!user?.id) throw new Error("Unauthenticated");
-    const isEditing = !!s.id;
-
+    const validation = supplierSchema.safeParse(s);
+    if (!validation.success) throw new Error(validation.error.errors[0].message);
     const saved = await dataService.saveSupplier(s);
     setSuppliers(prev => {
         const exists = prev.find(item => item.id === saved.id);
         return exists ? prev.map(item => item.id === saved.id ? saved : item) : [saved, ...prev];
     });
-    dataService.logActivity(user.id, isEditing ? "تعديل مورد" : "إضافة مورد", `المورد: ${saved.name}, الهاتف: ${saved.phone}`, 'general');
     return saved;
-  }, [user]);
-
-  const deleteSale = useCallback(async (id: string) => {
-    if (!user?.id) throw new Error("Unauthenticated");
-    const saleToDelete = sales.find(s => s.id === id);
-    if (!saleToDelete) {
-      addNotification("خطأ", "الفاتورة غير موجودة.", "warning");
-      return;
-    }
-
-    setSales(prev => prev.filter(s => s.id !== id));
-    try {
-      await dataService.deleteRecord('sales', id);
-      addNotification("تم الحذف 🗑️", "تم إزالة سجل المبيعات.", "success");
-      dataService.logActivity(user.id, "حذف فاتورة بيع", `تم حذف فاتورة العميل: ${saleToDelete.customer_name}, الإجمالي: ${saleToDelete.total} ${saleToDelete.currency}`, 'sale');
-    } catch (e: any) {
-      logger.error("Failed to delete sale:", e);
-      addNotification("خطأ ⚠️", e.message || "فشل حذف فاتورة البيع.", "warning");
-    }
-  }, [addNotification, sales, user]);
-
-  const deletePurchase = useCallback(async (id: string) => {
-    if (!user?.id) throw new Error("Unauthenticated");
-    const purchaseToDelete = purchases.find(p => p.id === id);
-    if (!purchaseToDelete) {
-      addNotification("خطأ", "فاتورة الشراء غير موجودة.", "warning");
-      return;
-    }
-
-    setPurchases(prev => prev.filter(p => p.id !== id));
-    try {
-      await dataService.deleteRecord('purchases', id);
-      addNotification("تم الحذف 🗑️", "تم إزالة سجل المشتريات.", "success");
-      dataService.logActivity(user.id, "حذف فاتورة شراء", `تم حذف فاتورة المورد: ${purchaseToDelete.supplier_name}, الإجمالي: ${purchaseToDelete.total} ${purchaseToDelete.currency}`, 'purchase');
-    } catch (e: any) {
-      logger.error("Failed to delete purchase:", e);
-      addNotification("خطأ ⚠️", e.message || "فشل حذف فاتورة الشراء.", "warning");
-    }
-  }, [addNotification, purchases, user]);
-
-  const deleteCustomer = useCallback(async (id: string) => {
-    if (!user?.id) throw new Error("Unauthenticated");
-    const customerToDelete = customers.find(c => c.id === id);
-    if (!customerToDelete) {
-      addNotification("خطأ", "العميل غير موجود.", "warning");
-      return;
-    }
-
-    setCustomers(prev => prev.filter(c => c.id !== id));
-    try {
-      await dataService.deleteRecord('customers', id);
-      addNotification("تم الحذف 🗑️", `تم حذف العميل ${customerToDelete.name}.`, "success");
-      dataService.logActivity(user.id, "حذف عميل", `تم حذف العميل: ${customerToDelete.name}`, 'general');
-    } catch (e: any) {
-      logger.error("Failed to delete customer:", e);
-      addNotification("عذراً ⚠️", e.message || "لا يمكن حذف العميل لوجود عمليات مالية مرتبطة به.", "warning");
-    }
-  }, [addNotification, customers, user]);
-
-  const deleteSupplier = useCallback(async (id: string) => {
-    if (!user?.id) throw new Error("Unauthenticated");
-    const supplierToDelete = suppliers.find(s => s.id === id);
-    if (!supplierToDelete) {
-      addNotification("خطأ", "المورد غير موجود.", "warning");
-      return;
-    }
-
-    setSuppliers(prev => prev.filter(s => s.id !== id));
-    try {
-      await dataService.deleteRecord('suppliers', id);
-      addNotification("تم الحذف 🗑️", `تم حذف المورد ${supplierToDelete.name}.`, "success");
-      dataService.logActivity(user.id, "حذف مورد", `تم حذف المورد: ${supplierToDelete.name}`, 'general');
-    } catch (e: any) {
-      logger.error("Failed to delete supplier:", e);
-      addNotification("عذراً ⚠️", e.message || "لا يمكن حذف المورد لوجود عمليات مالية مرتبطة به.", "warning");
-    }
-  }, [addNotification, suppliers, user]);
-
+  }, []);
 
   const value = useMemo(() => ({
     customers, setCustomers, suppliers, setSuppliers, sales, setSales, purchases, setPurchases,
-    addSale, addPurchase, addCustomer, addSupplier, 
-    deleteSale, deletePurchase, deleteCustomer, deleteSupplier, 
-    returnSale, returnPurchase, formatValue
-  }), [customers, suppliers, sales, purchases, addSale, addPurchase, addCustomer, addSupplier, deleteSale, deletePurchase, deleteCustomer, deleteSupplier, returnSale, returnPurchase, formatValue]);
+    addSale, addPurchase, addCustomer, addSupplier, formatValue, updateInternalStock,
+    returnSale: async (id: string) => {
+       await dataService.returnSale(id);
+       const sale = sales.find(s => s.id === id);
+       if (sale) updateInternalStock(sale.qat_type, sale.quantity);
+       setSales(prev => prev.map(s => s.id === id ? { ...s, is_returned: true, returned_at: new Date().toISOString() } : s));
+    },
+    deleteSale: async (id: string) => {
+       const sale = sales.find(s => s.id === id);
+       await dataService.deleteRecord('sales', id);
+       if (sale && !sale.is_returned) updateInternalStock(sale.qat_type, sale.quantity);
+       setSales(prev => prev.filter(s => s.id !== id));
+    },
+    deletePurchase: async (id: string) => {
+       const purchase = purchases.find(p => p.id === id);
+       await dataService.deleteRecord('purchases', id);
+       if (purchase && !purchase.is_returned) updateInternalStock(purchase.qat_type, -purchase.quantity);
+       setPurchases(prev => prev.filter(p => p.id !== id));
+    },
+    deleteCustomer: async (id: string) => {
+       await dataService.deleteRecord('customers', id);
+       setCustomers(prev => prev.filter(c => c.id !== id));
+    },
+    deleteSupplier: async (id: string) => {
+       await dataService.deleteRecord('suppliers', id);
+       setSuppliers(prev => prev.filter(s => s.id !== id));
+    }
+  }), [customers, suppliers, sales, purchases, addSale, addPurchase, addCustomer, addSupplier, formatValue, updateInternalStock]);
 
   return <BusinessContext.Provider value={value}>{children}</BusinessContext.Provider>;
 };
 
-export const useBusiness = () => {
-    const context = useContext(BusinessContext);
-    if (!context) throw new Error("useBusiness must be used within BusinessProvider");
-    return context;
-};
+export const useBusiness = () => useContext(BusinessContext);

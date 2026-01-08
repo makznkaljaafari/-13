@@ -1,5 +1,5 @@
 
-import { Sale, Purchase, Voucher, Customer, Supplier, Expense, QatCategory } from "../types";
+import { Sale, Purchase, Voucher, Customer, Supplier, Expense, QatCategory, Currency } from "../types";
 
 export interface AccountStatus {
   label: string;
@@ -24,7 +24,7 @@ export const financeService = {
   },
 
   getCustomerBalances(customerId: string, sales: Sale[], vouchers: Voucher[]) {
-    const currencies = ['YER', 'SAR', 'OMR'] as const;
+    const currencies: Currency[] = ['YER', 'SAR', 'OMR'];
     return currencies.map(cur => {
       const customerSales = sales.filter(s => s.customer_id === customerId && s.currency === cur && !s.is_returned);
       const totalSalesDebt = customerSales.filter(s => s.status === 'آجل').reduce((sum, s) => sum + s.total, 0);
@@ -48,7 +48,7 @@ export const financeService = {
   },
 
   getSupplierBalances(supplierId: string, purchases: Purchase[], vouchers: Voucher[]) {
-    const currencies = ['YER', 'SAR', 'OMR'] as const;
+    const currencies: Currency[] = ['YER', 'SAR', 'OMR'];
     return currencies.map(cur => {
       const supplierPurchases = purchases.filter(p => p.supplier_id === supplierId && p.currency === cur && !p.is_returned);
       const totalPurchases = supplierPurchases.filter(p => p.status === 'آجل').reduce((sum, p) => sum + p.total, 0);
@@ -71,8 +71,29 @@ export const financeService = {
     });
   },
 
+  /**
+   * حساب تفصيلي للتدفقات النقدية (Excel Breakdown)
+   */
+  getDetailedCashBreakdown(cur: Currency, sales: Sale[], purchases: Purchase[], vouchers: Voucher[], expenses: Expense[], assets: number, liabilities: number) {
+    const cashSales = sales.filter(s => s.status === 'نقدي' && s.currency === cur && !s.is_returned).reduce((sum, s) => sum + s.total, 0);
+    const voucherReceipts = vouchers.filter(v => v.type === 'قبض' && v.currency === cur).reduce((sum, v) => sum + v.amount, 0);
+    const cashPurchases = purchases.filter(p => p.status === 'نقدي' && p.currency === cur && !p.is_returned).reduce((sum, p) => sum + p.total, 0);
+    const voucherPayments = vouchers.filter(v => v.type === 'دفع' && v.currency === cur).reduce((sum, v) => sum + v.amount, 0);
+    const totalExp = (expenses || []).filter(e => e.currency === cur).reduce((sum, e) => sum + e.amount, 0);
+
+    return [
+      { item: 'نقدية مبيعات المعرض (كاش)', plus: cashSales, minus: 0 },
+      { item: 'سندات قبض نقدية (وارد)', plus: voucherReceipts, minus: 0 },
+      { item: 'مشتريات نقدية مدفوعة (صادر)', plus: 0, minus: cashPurchases },
+      { item: 'سندات دفع نقدية (صادر)', plus: 0, minus: voucherPayments },
+      { item: 'إجمالي المصاريف التشغيلية', plus: 0, minus: totalExp },
+      { item: 'مديونيات العملاء المستحقة (لنا)', plus: assets, minus: 0 },
+      { item: 'مديونيات الموردين المستحقة (علينا)', plus: 0, minus: liabilities },
+    ];
+  },
+
   getGlobalBudgetSummary(customers: Customer[], suppliers: Supplier[], sales: Sale[], purchases: Purchase[], vouchers: Voucher[], expenses: Expense[] = []) {
-    const currencies = ['YER', 'SAR', 'OMR'] as const;
+    const currencies: Currency[] = ['YER', 'SAR', 'OMR'];
     return currencies.map(cur => {
       let assets = 0;
       let liabilities = 0;
