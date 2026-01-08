@@ -15,7 +15,7 @@
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/628/628283.png">
     
     <script>
-      // تأمين كائن process لمنع أخطاء المكتبات التي تعتمد عليه
+      // تأمين كائن process لمنع أخطاء المكتبات
       window.process = { 
         env: { 
           API_KEY: "",
@@ -23,19 +23,22 @@
         } 
       };
 
-      // نظام اكتشاف الأخطاء المبكر
-      window.onerror = function(msg, url, lineNo, columnNo, error) {
-        console.error('Critical App Error:', msg, error);
+      // وظيفة إخفاء السبنر اليدوية للطوارئ
+      window.forceHideSpinner = function() {
         const spinner = document.getElementById('html-loading-spinner');
         if (spinner) {
-          spinner.innerHTML = `
-            <div style="color: #dc2626; text-align: center; padding: 20px; font-family: sans-serif;">
-              <h2 style="font-weight: 900;">⚠️ فشل تحميل النظام</h2>
-              <p style="font-size: 14px; color: #64748b;">تأكد من جودة اتصال الإنترنت وأعد المحاولة.</p>
-              <button onclick="window.location.reload()" style="background:#1e3a8a; color:white; border:none; padding:10px 20px; border-radius:10px; font-weight:bold; cursor:pointer; margin-top:10px;">إعادة المحاولة</button>
-            </div>
-          `;
+          spinner.style.opacity = '0';
+          setTimeout(() => { spinner.style.display = 'none'; }, 500);
+          console.log('Failsafe: Loading spinner forced hidden.');
         }
+      };
+
+      // إذا مر 12 ثانية ولم يختفِ السبنر، أخفه يدوياً
+      setTimeout(window.forceHideSpinner, 12000);
+
+      window.onerror = function(msg, url, lineNo, columnNo, error) {
+        console.error('Critical App Error:', msg, error);
+        window.forceHideSpinner();
         return false;
       };
     </script>
@@ -53,11 +56,6 @@
             colors: {
               brandPrimary: "#1e3a8a",
               brandSecondary: "#2563eb",
-              brandSuccess: "#059669",
-              brandDanger: "#dc2626",
-              brandWarning: "#d97706",
-              brandBgLight: "#f0f9ff",
-              brandBgDark: "#020617",
             }
           }
         }
@@ -67,18 +65,14 @@
     <style>
       :root {
         --color-background-page: #f0f9ff; 
-        --color-background-card: #ffffff;
         --color-text-primary: #001e4d;
-        --color-border-primary: #bae6fd;
       }
       .dark {
         --color-background-page: #020617;
-        --color-background-card: #0f172a;
         --color-text-primary: #f8fafc;
-        --color-border-primary: #334155;
       }
       * { font-family: 'Tajawal', sans-serif; -webkit-tap-highlight-color: transparent; }
-      body { background-color: var(--color-background-page); color: var(--color-text-primary); margin: 0; }
+      body { background-color: var(--color-background-page); color: var(--color-text-primary); margin: 0; overflow-x: hidden; }
 
       #html-loading-spinner {
         display: flex;
@@ -89,6 +83,7 @@
         inset: 0;
         z-index: 9999;
         background: #f0f9ff;
+        transition: opacity 0.5s ease;
       }
       .dark #html-loading-spinner { background: #020617; }
 
@@ -101,20 +96,20 @@
         animation: spin 1s linear infinite;
       }
       @keyframes spin { to { transform: rotate(360deg); } }
-      .no-scrollbar::-webkit-scrollbar { display: none; }
     </style>
 
 <script type="importmap">
 {
   "imports": {
     "react": "https://esm.sh/react@19.0.0",
-    "react/": "https://esm.sh/react@19.0.0/",
     "react-dom": "https://esm.sh/react-dom@19.0.0",
-    "react-dom/": "https://esm.sh/react-dom@19.0.0/",
+    "react-dom/client": "https://esm.sh/react-dom@19.0.0/client",
     "@google/genai": "https://esm.sh/@google/genai@1.0.0",
     "recharts": "https://esm.sh/recharts@2.15.0?deps=react@19.0.0",
     "zod": "https://esm.sh/zod@3.23.0",
-    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2.45.0"
+    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2.45.0",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "react/": "https://esm.sh/react@^19.2.3/"
   }
 }
 </script>
@@ -124,9 +119,12 @@
     
     <div id="html-loading-spinner">
       <div class="spinner-box"></div>
-      <p style="margin-top: 20px; font-weight: 800; color: #1e3a8a; font-size: 14px;">جاري تشغيل محرك الشويع الذكي...</p>
+      <p style="margin-top: 20px; font-weight: 800; color: #1e3a8a; font-size: 14px; text-align: center; padding: 0 20px;">
+        جاري تشغيل محرك الشويع الذكي...
+      </p>
     </div>
 
+    <!-- تأكد من استخدام النوع module واستخدام الامتداد .tsx الذي سيقوم المترجم بمعالجته -->
     <script type="module" src="index.tsx"></script>
 </body>
 </html>

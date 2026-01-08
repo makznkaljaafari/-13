@@ -20,12 +20,14 @@ const SyncManager: React.FC = () => {
     initializedRef.current = true;
 
     let isMounted = true;
+    
+    // تقليل وقت الانتظار ليكون أسرع في الاستجابة
     const authTimeout = setTimeout(() => {
       if (isMounted) {
-        console.warn("Auth check timed out, forcing login screen.");
+        console.warn("Auth check timed out, forcing UI unlock.");
         setIsCheckingSession(false);
       }
-    }, 8000);
+    }, 6000);
 
     const initAuth = async () => {
       try {
@@ -35,7 +37,8 @@ const SyncManager: React.FC = () => {
 
         if (session && !error) {
           setIsLoggedIn(true);
-          await loadAllData(session.user.id, true);
+          // تحميل البيانات في الخلفية لعدم تعطيل الواجهة
+          loadAllData(session.user.id, true);
           if (currentPage === 'login') navigate('dashboard');
         } else {
           setIsLoggedIn(false);
@@ -43,14 +46,13 @@ const SyncManager: React.FC = () => {
         }
       } catch (err: any) {
         console.error("Auth Initialization Failed:", err);
-        if (isMounted) {
-          setIsLoggedIn(false);
-          addNotification("مشكلة في الاتصال 📡", "النظام يعمل حالياً بالوضع المحلي فقط.", "warning");
-        }
+        if (isMounted) setIsLoggedIn(false);
       } finally {
         if (isMounted) {
           clearTimeout(authTimeout);
           setIsCheckingSession(false);
+          // استدعاء دالة إخفاء السبنر من index.html للتأكيد
+          if ((window as any).forceHideSpinner) (window as any).forceHideSpinner();
         }
       }
     };

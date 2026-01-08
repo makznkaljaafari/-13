@@ -3,12 +3,11 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
 
-// تسجيل الـ Service Worker
+// تسجيل الـ Service Worker بطريقة لا تعيق التحميل الأول
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js', { scope: './' })
-      .then(reg => console.log('✅ Al-Shwaia Smart SW Registered'))
-      .catch(err => console.warn('⚠️ SW Registration skipped:', err));
+    navigator.serviceWorker.register('./sw.js')
+      .catch(err => console.warn('SW registration failed:', err));
   });
 }
 
@@ -19,26 +18,26 @@ if (!rootElement) {
 
 const root = createRoot(rootElement);
 
-// وظيفة لإخفاء السبنر بعد أن يصبح التطبيق جاهزاً
-const hideLoadingSpinner = () => {
-  const htmlSpinner = document.getElementById('html-loading-spinner');
-  if (htmlSpinner) {
-    htmlSpinner.style.opacity = '0';
-    setTimeout(() => {
-      htmlSpinner.style.display = 'none';
-    }, 500);
+// دالة إخفاء شاشة التحميل
+const hideSpinner = () => {
+  if ((window as any).forceHideSpinner) {
+    (window as any).forceHideSpinner();
+  } else {
+    const spinner = document.getElementById('html-loading-spinner');
+    if (spinner) spinner.style.display = 'none';
   }
 };
 
-// تنفيذ الرندر ثم إخفاء السبنر
 try {
   root.render(
     <React.StrictMode>
       <App />
     </React.StrictMode>
   );
-  // إخفاء بسيط بعد ثانية لضمان أن المكونات الأساسية بدأت بالتحميل
-  setTimeout(hideLoadingSpinner, 1000);
+  
+  // إخفاء السبنر بعد وقت قصير من الرندر لضمان ظهور أول مكون
+  setTimeout(hideSpinner, 1500);
 } catch (e) {
-  console.error("React Render Failed:", e);
+  console.error("React Error:", e);
+  hideSpinner();
 }
