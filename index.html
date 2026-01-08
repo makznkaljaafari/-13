@@ -15,10 +15,10 @@
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/628/628283.png">
     
     <script>
-      // تأمين كائن process لمنع أخطاء المكتبات الخارجية
+      // تأمين كائن process الضروري لعمل مكتبات مثل Zod و Recharts في المتصفح
       window.process = window.process || { env: { NODE_ENV: "production" } };
 
-      // وظيفة إخفاء شاشة التحميل
+      // وظيفة إخفاء السبنر اليدوية للطوارئ
       window.forceHideSpinner = function() {
         const spinner = document.getElementById('html-loading-spinner');
         if (spinner) {
@@ -27,11 +27,8 @@
         }
       };
 
-      // مراقبة الأخطاء في مرحلة التحميل المبكر
-      window.onerror = function(msg, url, line, col, error) {
-        console.error('Startup Error:', msg, error);
-        // لا نظهر رسالة الخطأ إلا إذا تأكدنا من فشل React تماماً بعد 10 ثوانٍ
-      };
+      // إذا استمرت الشاشة البيضاء (فشل React في الرندر)، قم بإخفاء السبنر بعد 10 ثوانٍ
+      setTimeout(window.forceHideSpinner, 10000);
     </script>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -57,7 +54,7 @@
       :root { --color-background-page: #f0f9ff; --color-text-primary: #001e4d; }
       .dark { --color-background-page: #020617; --color-text-primary: #f8fafc; }
       * { font-family: 'Tajawal', sans-serif; -webkit-tap-highlight-color: transparent; }
-      body { background-color: var(--color-background-page); color: var(--color-text-primary); margin: 0; overflow: hidden; }
+      body { background-color: var(--color-background-page); color: var(--color-text-primary); margin: 0; overflow-x: hidden; }
 
       #html-loading-spinner {
         display: flex;
@@ -87,14 +84,14 @@
 {
   "imports": {
     "react": "https://esm.sh/react@19.0.0",
-    "react/": "https://esm.sh/react@19.0.0/",
     "react-dom": "https://esm.sh/react-dom@19.0.0",
-    "react-dom/": "https://esm.sh/react-dom@19.0.0/",
     "react-dom/client": "https://esm.sh/react-dom@19.0.0/client",
     "@google/genai": "https://esm.sh/@google/genai@1.0.0",
     "recharts": "https://esm.sh/recharts@2.15.0?deps=react@19.0.0",
     "zod": "https://esm.sh/zod@3.23.0",
-    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2.45.0"
+    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2.45.0",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "react/": "https://esm.sh/react@^19.2.3/"
   }
 }
 </script>

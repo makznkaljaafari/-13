@@ -3,10 +3,9 @@ import { GoogleGenAI, Type, FunctionDeclaration } from "@google/genai";
 import { Sale, Expense, ChatMessage, QatCategory, AppError } from "../types";
 import { logger } from "./loggerService";
 
+// الالتزام بالقاعدة: استخدام process.env.API_KEY مباشرة وعدم تعريف محلي للمفتاح
 const getAIClient = () => {
-  const apiKey = (window as any).process?.env?.API_KEY || process.env.API_KEY;
-  // استخدام مفتاح وهمي إذا كان المفتاح مفقوداً لمنع انهيار التهيئة
-  return new GoogleGenAI({ apiKey: apiKey || "MISSING_KEY" });
+  return new GoogleGenAI({ apiKey: process.env.API_KEY });
 };
 
 let isQuotaExhausted = false;
@@ -37,11 +36,6 @@ export const aiTools: FunctionDeclaration[] = [
 ];
 
 async function retryAI<T>(fn: () => Promise<T>, retries = 1, delay = 2000): Promise<T> {
-  const apiKey = (window as any).process?.env?.API_KEY || process.env.API_KEY;
-  if (!apiKey || apiKey === "MISSING_KEY") {
-    throw new AppError("يرجى ضبط مفتاح API في الإعدادات لتفعيل الذكاء الاصطناعي.", "NO_API_KEY", 401, true);
-  }
-
   if (isQuotaExhausted && Date.now() < quotaResetTime) {
     throw new AppError("المحاسب الذكي استنفد طاقته حالياً. يرجى الانتظار دقيقة.", "QUOTA_LOCK", 429, true);
   }
@@ -70,6 +64,7 @@ export const getChatResponse = async (message: string, history: ChatMessage[], c
 
   try {
     const response = await retryAI(async () => {
+      // الالتزام بالقاعدة: استخدام ai.models.generateContent مباشرة
       const chatResponse = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
         contents: message,
@@ -89,9 +84,6 @@ export const getChatResponse = async (message: string, history: ChatMessage[], c
 };
 
 export const getFinancialForecast = async (sales: Sale[], expenses: Expense[], categories: QatCategory[]) => {
-  const apiKey = (window as any).process?.env?.API_KEY || process.env.API_KEY;
-  if (!apiKey || apiKey === "MISSING_KEY") return "الذكاء الاصطناعي غير مفعل حالياً.";
-
   const ai = getAIClient();
   try {
     const response = await ai.models.generateContent({
