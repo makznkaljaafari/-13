@@ -3,23 +3,19 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
 
-// وظيفة إخفاء شاشة التحميل بأمان
-const hideSpinner = () => {
+// وظيفة إخفاء السبنر بأمان
+const hideLoadingScreen = () => {
   if (typeof (window as any).forceHideSpinner === 'function') {
     (window as any).forceHideSpinner();
   } else {
-    const spinner = document.getElementById('html-loading-spinner');
-    if (spinner) spinner.style.display = 'none';
+    const el = document.getElementById('html-loading-spinner');
+    if (el) el.style.display = 'none';
   }
 };
 
-const initApp = () => {
-  const rootElement = document.getElementById('root');
-  if (!rootElement) {
-    console.error("Critical: Root element missing!");
-    return;
-  }
+const rootElement = document.getElementById('root');
 
+if (rootElement) {
   try {
     const root = createRoot(rootElement);
     root.render(
@@ -28,24 +24,17 @@ const initApp = () => {
       </React.StrictMode>
     );
     
-    // إخفاء السبنر بعد استقرار الواجهة قليلاً
-    setTimeout(hideSpinner, 1000);
-  } catch (e) {
-    console.error("React Mounting Error:", e);
-    hideSpinner();
+    // إخفاء شاشة التحميل بعد استقرار التطبيق في الذاكرة
+    setTimeout(hideLoadingScreen, 1200);
+  } catch (error) {
+    console.error("Failed to mount React application:", error);
+    hideLoadingScreen();
   }
-};
+}
 
-// تسجيل الـ Service Worker في الخلفية
+// تسجيل Service Worker في الخلفية لتحسين الأداء
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('./sw.js').catch(() => {});
   });
-}
-
-// البدء عند جاهزية المستند
-if (document.readyState === 'complete' || document.readyState === 'interactive') {
-  initApp();
-} else {
-  document.addEventListener('DOMContentLoaded', initApp);
 }
