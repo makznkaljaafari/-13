@@ -14,11 +14,18 @@
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/628/628283.png">
     
-    <script>
-      // تأمين كائن process الضروري لعمل مكتبات مثل Zod و Recharts في المتصفح
-      window.process = window.process || { env: { NODE_ENV: "production" } };
+    <!-- Babel Standalone لترجمة TSX في المتصفح -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
-      // وظيفة إخفاء السبنر اليدوية للطوارئ
+    <script>
+      // تأمين كائن process الضروري لعمل مكتبات مثل Zod و Recharts و Gemini في المتصفح
+      window.process = {
+        env: {
+          NODE_ENV: "production",
+          API_KEY: "" 
+        }
+      };
+
       window.forceHideSpinner = function() {
         const spinner = document.getElementById('html-loading-spinner');
         if (spinner) {
@@ -27,8 +34,7 @@
         }
       };
 
-      // إذا استمرت الشاشة البيضاء (فشل React في الرندر)، قم بإخفاء السبنر بعد 10 ثوانٍ
-      setTimeout(window.forceHideSpinner, 10000);
+      setTimeout(window.forceHideSpinner, 12000);
     </script>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -104,6 +110,6 @@
       <p style="margin-top: 20px; font-weight: 800; color: #1e3a8a; font-size: 14px;">جاري تشغيل محرك الشويع الذكي...</p>
     </div>
 
-    <script type="module" src="index.tsx"></script>
+    <script type="text/babel" data-type="module" data-presets="react,typescript" src="index.tsx"></script>
 </body>
 </html>

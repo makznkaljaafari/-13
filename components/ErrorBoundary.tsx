@@ -14,8 +14,9 @@ interface ErrorBoundaryState {
  * مكون ErrorBoundary لمعالجة الأخطاء غير المتوقعة في التطبيق.
  * تم تحديثه لضمان التعرف الصحيح على الخصائص المورثة (setState, props) في TypeScript.
  */
+// Fix: Use explicit React.Component inheritance to ensure that base class methods like 'setState' and properties like 'props' are correctly recognized by the TypeScript compiler.
 class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
-  // تهيئة الحالة بشكل صريح لضمان وراثة النوع
+  // Fix: Explicitly define the 'state' property with its interface to ensure correct typing within instance methods.
   public state: ErrorBoundaryState = {
     hasError: false,
     error: undefined,
@@ -33,13 +34,13 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
   // استخدام ErrorInfo من React لضمان صحة أنواع المدخلات
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error('React Error Boundary caught an error:', error, errorInfo);
-    // Fix: Using setState inherited from React.Component
+    // Fix: Now setState is correctly inherited from React.Component and available on 'this'.
     this.setState({ errorInfo });
   }
 
   handleReset = () => {
     // إعادة تعيين الحالة للسماح للمستخدم بإعادة تشغيل التطبيق
-    // Fix: Using setState inherited from React.Component
+    // Fix: Now setState is correctly inherited from React.Component and available on 'this'.
     this.setState({ hasError: false, error: undefined, errorInfo: undefined });
     window.location.href = '/'; 
   };
@@ -88,7 +89,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
       );
     }
 
-    // Fix: Accessing children from props inherited from React.Component
+    // Fix: Accessing children via 'this.props', which is now correctly recognized as inherited from React.Component.
     return this.props.children;
   }
 }
