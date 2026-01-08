@@ -21,15 +21,13 @@ const SyncManager: React.FC = () => {
 
     let isMounted = true;
     
-    // مؤقت أمان لفك قفل الواجهة مهما حدث في السيرفر (زيادة الأمان بـ 7 ثوانٍ)
-    const authTimeout = setTimeout(() => {
+    // صمام أمان: فك قفل الواجهة قسرياً بعد 8 ثوانٍ مهما كانت حالة الشبكة
+    const safetyTimeout = setTimeout(() => {
       if (isMounted) {
-        console.warn("Auth check timeout - forcing UI unlock");
         setIsCheckingSession(false);
-        // نداء إخفاء شاشة التحميل من index.html للتأكيد
         if ((window as any).forceHideSpinner) (window as any).forceHideSpinner();
       }
-    }, 7000);
+    }, 8000);
 
     const initAuth = async () => {
       try {
@@ -39,7 +37,7 @@ const SyncManager: React.FC = () => {
 
         if (session && !error) {
           setIsLoggedIn(true);
-          // تحميل البيانات في الخلفية
+          // تحميل البيانات في الخلفية بدون انتظار كامل
           loadAllData(session.user.id, true).catch(() => {});
           if (currentPage === 'login') navigate('dashboard');
         } else {
@@ -50,7 +48,7 @@ const SyncManager: React.FC = () => {
         console.error("Session Init Error:", err);
       } finally {
         if (isMounted) {
-          clearTimeout(authTimeout);
+          clearTimeout(safetyTimeout);
           setIsCheckingSession(false);
           if ((window as any).forceHideSpinner) (window as any).forceHideSpinner();
         }
@@ -73,7 +71,7 @@ const SyncManager: React.FC = () => {
 
     return () => {
       isMounted = false;
-      clearTimeout(authTimeout);
+      clearTimeout(safetyTimeout);
       subscription.unsubscribe();
     };
   }, [loadAllData, navigate, setIsLoggedIn, setUser, setIsCheckingSession, currentPage]);
