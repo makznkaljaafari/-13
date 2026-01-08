@@ -4,112 +4,116 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    
-    <!-- SEO & Metadata -->
-    <title>وكالة الشويع للقات - النظام الذكي</title>
-    <meta name="description" content="نظام الشويع الذكي - الإدارة المحاسبية السحابية المتكاملة لوكالات القات مدعوم بالذكاء الاصطناعي">
-    <meta name="keywords" content="محاسبة، قات، اليمن، نظام سحابي، ذكاء اصطناعي، تجارة">
-    <meta name="author" content="وكالة الشويع">
-    
-    <!-- Social Media Sharing (Open Graph) -->
-    <meta property="og:title" content="نظام الشويع المحاسبي الذكي">
-    <meta property="og:description" content="أول نظام يمني ذكي لإدارة مبيعات ومشتريات القات سحابياً مع دعم كامل للأوامر الصوتية.">
-    <meta property="og:image" content="https://cdn-icons-png.flaticon.com/512/628/628283.png">
-    <meta property="og:url" content="https://alshwaia.vercel.app">
-    <meta property="og:type" content="website">
-    
-    <!-- Twitter Cards -->
-    <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="وكالة الشويع للقات - النظام الذكي">
-    <meta name="twitter:description" content="إدارة مبيعاتك ومخزونك بذكاء من أي مكان وفي أي وقت.">
-    <meta name="twitter:image" content="https://cdn-icons-png.flaticon.com/512/628/628283.png">
-
-    <!-- Mobile App Settings -->
+    <meta name="theme-color" content="#1e3a8a">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="الشويع">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="theme-color" content="#f8fafc">
-    <meta name="format-detection" content="telephone=no">
+    <meta name="description" content="نظام الشويع الذكي - الإدارة المحاسبية المتقدمة لوكالات القات">
     
-    <link rel="manifest" href="/metadata.json">
+    <title>وكالة الشويع للقات - النظام الذكي</title>
+    
+    <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/628/628283.png">
-    <link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/628/628283.png">
     
-    <!-- Preconnect to improve loading speed for critical resources -->
+    <script>
+      window.process = { env: { API_KEY: "" } };
+    </script>
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="preconnect" href="https://esm.sh">
-    <link rel="dns-prefetch" href="https://esm.sh">
-    <link rel="preconnect" href="https://xaolczjmsrksqqihnlus.supabase.co">
-    <link rel="dns-prefetch" href="https://xaolczjmsrksqqihnlus.supabase.co">
-
-    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap" rel="stylesheet">
     
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            colors: {
+              brandPrimary: "#1e3a8a",
+              brandSecondary: "#2563eb",
+              brandSuccess: "#059669",
+              brandDanger: "#dc2626",
+              brandWarning: "#d97706",
+              brandBgLight: "#f0f9ff",
+              brandBgDark: "#020617",
+            },
+            spacing: {
+              'safe-top': 'var(--safe-area-inset-top)',
+              'safe-bottom': 'var(--safe-area-inset-bottom)',
+            }
+          }
+        }
+      }
+    </script>
+
     <style>
       :root {
-        --color-background-page: #f1f5f9;
+        --color-background-page: #f0f9ff; 
         --color-background-card: #ffffff;
-        --color-background-input: #f8fafc;
-        --color-background-tertiary: #e2e8f0;
-        --color-border-default: #cbd5e1;
-        --color-text-default: #0f172a;
-        --color-accent-sky: #0ea5e9;
+        --color-background-input: #e0f2fe;
+        --color-text-primary: #001e4d;
+        --color-border-primary: #bae6fd;
+        --color-accent: #2563eb;
+        --safe-area-inset-top: env(safe-area-inset-top, 0px);
+        --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
       }
 
       .dark {
         --color-background-page: #020617;
         --color-background-card: #0f172a;
         --color-background-input: #1e293b;
-        --color-background-tertiary: #1e293b;
-        --color-border-default: #334155;
-        --color-text-default: #f8fafc;
+        --color-text-primary: #f8fafc;
+        --color-border-primary: #334155;
+        --color-accent: #38bdf8;
       }
 
       * { 
         font-family: 'Tajawal', sans-serif; 
-        -webkit-tap-highlight-color: transparent;
-        user-select: none;
+        -webkit-tap-highlight-color: transparent; 
+        box-sizing: border-box;
       }
       
-      input, textarea { user-select: auto !important; }
-
       body { 
-        overscroll-behavior: none; 
         background-color: var(--color-background-page);
-        color: var(--color-text-default);
-        position: fixed; 
-        height: 100%; 
-        width: 100vw; 
-        overflow: hidden; 
+        color: var(--color-text-primary);
+        min-height: 100vh;
+        padding-top: var(--safe-area-inset-top);
+        padding-bottom: var(--safe-area-inset-bottom);
+        overflow-x: hidden;
       }
 
-      #root { 
-        height: 100%; 
-        overflow-y: auto; 
-        -webkit-overflow-scrolling: touch; 
+      .vibrant-card {
+        background-color: var(--color-background-card);
+        border: 2px solid var(--color-border-primary);
+        border-radius: 1.5rem;
+        box-shadow: 0 10px 15px -3px rgba(30, 58, 138, 0.05);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+      }
+
+      .vibrant-card:active { transform: scale(0.98); }
+
+      .financial-table th {
+        background-color: #1e3a8a;
+        color: #ffffff;
+        font-weight: 900;
+        text-align: center;
+        padding: 0.75rem;
+        border: 1px solid rgba(255,255,255,0.1);
       }
       
+      .financial-table td {
+        border: 1px solid var(--color-border-primary);
+        padding: 0.75rem;
+        font-weight: 700;
+      }
+
       .no-scrollbar::-webkit-scrollbar { display: none; }
-
-      #html-loading-spinner {
-        position: fixed; inset: 0;
-        background-color: #f8fafc;
-        display: flex; flex-direction: column; align-items: center; justify-content: center;
-        z-index: 9999; color: #0f172a;
+      
+      @keyframes float {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-10px); }
       }
-      .dark #html-loading-spinner { background-color: #020617; color: #f8fafc; }
-
-      .spinner {
-        width: 2.5rem; height: 2.5rem;
-        border: 4px solid #6366f1;
-        border-top-color: transparent;
-        border-radius: 50%;
-        animation: spin 0.8s linear infinite;
-        margin-bottom: 1rem;
-      }
-      @keyframes spin { to { transform: rotate(360deg); } }
+      .animate-float { animation: float 3s ease-in-out infinite; }
     </style>
 
 <script type="importmap">
@@ -127,15 +131,12 @@
 }
 </script>
 </head>
-<body class="antialiased">
+<body>
     <div id="root"></div>
-
-    <div id="html-loading-spinner">
-      <div class="spinner"></div>
-      <div class="font-bold">نظام الشويع الذكي</div>
-      <small style="margin-top: 8px; opacity: 0.6;">جاري التحميل...</small>
+    <div id="html-loading-spinner" class="flex flex-col items-center justify-center fixed inset-0 z-[9999] bg-brandBgLight dark:bg-brandBgDark">
+      <div class="w-16 h-16 border-8 border-brandPrimary border-t-brandSecondary rounded-full animate-spin"></div>
+      <p class="mt-4 font-black text-brandPrimary dark:text-brandSecondary text-xl">نظام الشويع المحاسبي</p>
     </div>
-
     <script type="module" src="index.tsx"></script>
 </body>
 </html>

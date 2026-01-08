@@ -1,5 +1,5 @@
 {
-  "name": "Copy of V1وكالة الشويع للقات - النظام الذكي",
+  "name": "V1وكالة الشويع للقات - النظام الذكي",
   "short_name": "الشويع",
   "description": "نظام محاسبي سحابي متكامل مدعوم بالذكاء الاصطناعي لإدارة مبيعات ومخزون القات.",
   "lang": "ar-YE",
@@ -42,7 +42,6 @@
   ],
   "requestFramePermissions": [
     "camera",
-    "microphone",
-    "geolocation"
+    "microphone"
   ]
 }

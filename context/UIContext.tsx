@@ -17,7 +17,7 @@ interface UIContextType {
   isOnline: boolean;
   offlineQueueCount: number;
   installPrompt: any;
-  isVoiceActive: boolean; // حالة المساعد الصوتي
+  isVoiceActive: boolean; 
   navigate: (p: Page, params?: any) => void;
   setTheme: (t: Theme) => void;
   toggleTheme: () => void;
@@ -29,7 +29,7 @@ interface UIContextType {
   setNotifications: React.Dispatch<React.SetStateAction<AppNotification[]>>;
   triggerFeedback: (type: 'celebration' | 'debt') => void;
   promptInstall: () => void;
-  setIsVoiceActive: (active: boolean) => void; // وظيفة لتفعيل المساعد
+  setIsVoiceActive: (active: boolean) => void; 
 }
 
 const UIContext = createContext<UIContextType | undefined>(undefined);
@@ -38,7 +38,7 @@ export const UIProvider: React.FC<{ children: React.ReactNode }> = ({ children }
   const [currentPage, setCurrentPage] = useState<Page>('login');
   const [navigationParams, setNavigationParams] = useState<any>(null);
   const [theme, setThemeState] = useState<Theme>(() => (localStorage.getItem('theme') as Theme) || 'light');
-  const [resolvedTheme, setResolvedTheme] = useState<'light' | 'dark'>('dark');
+  const [resolvedTheme, setResolvedTheme] = useState<'light' | 'dark'>('light');
   const [activeToasts, setActiveToasts] = useState<ToastProps[]>([]);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => localStorage.getItem('sidebarCollapsed') === 'true');
@@ -68,7 +68,7 @@ export const UIProvider: React.FC<{ children: React.ReactNode }> = ({ children }
 
   useEffect(() => {
     const applyTheme = () => {
-      let target: 'light' | 'dark' = 'dark';
+      let target: 'light' | 'dark' = 'light';
       if (theme === 'system') {
         target = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
       } else {
@@ -76,8 +76,10 @@ export const UIProvider: React.FC<{ children: React.ReactNode }> = ({ children }
       }
       
       setResolvedTheme(target);
-      document.documentElement.classList.remove('light', 'dark');
-      document.documentElement.classList.add(target);
+      const root = window.document.documentElement;
+      root.classList.remove('light', 'dark');
+      root.classList.add(target);
+      root.style.colorScheme = target;
     };
 
     applyTheme();
@@ -127,9 +129,8 @@ export const UIProvider: React.FC<{ children: React.ReactNode }> = ({ children }
       setNotifications(prev => prev.map(n => ({ ...n, read: true })));
     } catch (e) {
       logger.error("Failed to mark notifications as read:", e);
-      addNotification("خطأ ⚠️", "فشل تحديث حالة الإشعارات.", "warning");
     }
-  }, [setNotifications, addNotification]);
+  }, [setNotifications]);
 
   const deleteAllOldNotifications = useCallback(async () => {
     const daysAgo = 7;
@@ -139,7 +140,6 @@ export const UIProvider: React.FC<{ children: React.ReactNode }> = ({ children }
       addNotification("تم ✅", "تم حذف التنبيهات القديمة بنجاح.", "success");
     } catch (e) {
       logger.error("Failed to delete old notifications:", e);
-      addNotification("خطأ ⚠️", "فشل حذف التنبيهات القديمة. حدث خطأ غير متوقع.", "warning");
     }
   }, [addNotification, setNotifications]);
 
@@ -155,7 +155,7 @@ export const UIProvider: React.FC<{ children: React.ReactNode }> = ({ children }
     };
     const handleOffline = () => {
       setIsOnline(false);
-      addNotification("قطع الاتصال ⛔", "أنت تعمل بالوضع المحلي حالياً. سيتم المزامنة لاحقاً.", "warning");
+      addNotification("قطع الاتصال ⛔", "أنت تعمل بالوضع المحلي حالياً.", "warning");
     };
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);

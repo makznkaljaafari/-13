@@ -6,7 +6,8 @@ import App from './App';
 // تسجيل الـ Service Worker لتمكين ميزات PWA والعمل دون اتصال
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js', { scope: '/' })
+    // استخدام مسار نسبي لتجنب مشاكل الـ Origin في بيئات المعاينة
+    navigator.serviceWorker.register('./sw.js', { scope: './' })
       .then(reg => {
         console.log('✅ Al-Shwaia Smart SW Registered');
         
@@ -23,7 +24,7 @@ if ('serviceWorker' in navigator) {
           }
         };
       })
-      .catch(err => console.error('❌ SW Registration Fail:', err));
+      .catch(err => console.warn('⚠️ SW Registration skipped or failed (Normal in some preview environments):', err));
   });
 }
 
