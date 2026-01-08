@@ -72,12 +72,13 @@ const SettingsPage: React.FC = () => {
   return (
     <PageLayout title="إعدادات النظام" onBack={() => navigate('dashboard')}>
       <div className="max-w-3xl mx-auto w-full px-2 pb-48 space-y-6 page-enter">
-        <div className={`p-1.5 rounded-[1.8rem] shadow-lg border overflow-x-auto no-scrollbar flex items-center gap-1 sticky top-2 z-30 ${resolvedTheme === 'dark' ? 'bg-slate-900/90 backdrop-blur-md border-white/5' : 'bg-white/90 backdrop-blur-md border-slate-200'}`}>
+        {/* Navigation Tabs - Added more padding and transition for stability */}
+        <div className={`p-1.5 rounded-[1.8rem] shadow-lg border overflow-x-auto no-scrollbar flex items-center gap-1 sticky top-2 z-30 transition-colors ${resolvedTheme === 'dark' ? 'bg-slate-900/90 backdrop-blur-md border-white/5' : 'bg-white/90 backdrop-blur-md border-slate-200'}`}>
           {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as SettingsTab)}
-              className={`flex-1 min-w-[70px] flex flex-col items-center justify-center gap-1 py-3 rounded-2xl font-black text-[9px] transition-all ${activeTab === tab.id ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5'}`}
+              className={`flex-1 min-w-[70px] flex flex-col items-center justify-center gap-1 py-3 rounded-2xl font-black text-[9px] transition-all duration-300 ${activeTab === tab.id ? 'bg-indigo-600 text-white shadow-lg scale-105' : 'text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5'}`}
             >
               <span className="text-lg">{tab.icon}</span>
               <span className="whitespace-nowrap">{tab.label}</span>
@@ -85,7 +86,8 @@ const SettingsPage: React.FC = () => {
           ))}
         </div>
 
-        <div className="space-y-6">
+        {/* Content Area - Fixed min-height to prevent "Shaking" on tab switch */}
+        <div className="min-h-[450px]">
           {activeTab === 'general' && (
             <SettingsCard icon="🏢" title="معلومات الوكالة" theme={resolvedTheme}>
               <GeneralTab localFormData={localFormData} setLocalFormData={setLocalFormData} setHasChanges={setHasChanges} />
@@ -130,7 +132,7 @@ const SettingsPage: React.FC = () => {
 };
 
 const SettingsCard = memo(({ icon, title, children, theme }: any) => (
-  <div className={`rounded-[2.2rem] border overflow-hidden shadow-sm ${theme === 'dark' ? 'bg-[var(--color-background-card)] border-white/5' : 'bg-white border-slate-200'}`}>
+  <div className={`rounded-[2.2rem] border overflow-hidden shadow-sm animate-in fade-in zoom-in-95 duration-300 ${theme === 'dark' ? 'bg-[var(--color-background-card)] border-white/5' : 'bg-white border-slate-200'}`}>
      <div className={`px-6 py-4 flex items-center gap-3 border-b ${theme === 'dark' ? 'border-white/5 bg-white/5' : 'bg-slate-50 border-slate-200'}`}>
         <span className="text-xl">{icon}</span>
         <h3 className="font-black text-xs uppercase tracking-tighter opacity-80">{title}</h3>

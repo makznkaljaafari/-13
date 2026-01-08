@@ -3,24 +3,20 @@ import { GoogleGenAI, Type, FunctionDeclaration } from "@google/genai";
 import { Sale, Expense, ChatMessage, QatCategory, AppError } from "../types";
 import { logger } from "./loggerService";
 
-const getAIClient = () => new GoogleGenAI({ apiKey: process.env.API_KEY });
+const getAIClient = () => {
+  const apiKey = process.env.API_KEY || (window as any).process?.env?.API_KEY;
+  if (!apiKey) {
+    logger.warn("AI API Key is missing. Gemini features will be limited.");
+  }
+  return new GoogleGenAI({ apiKey: apiKey || "NO_KEY" });
+};
 
 let isQuotaExhausted = false;
 let quotaResetTime = 0;
 
 export const SYSTEM_INSTRUCTION = `
 أنت "المحاسب الذكي" لوكالة الشويع للقات. خبير محاسبي يمني يدير النظام كاملاً بالصوت والنص.
-
-نطاق عملك:
-1. الإدارة المالية: تسجيل المبيعات، المشتريات، المصاريف، والسندات.
-2. إدارة الأشخاص: إضافة وتعديل بيانات العملاء والموردين.
-3. التقارير: استخراج الأرصدة والديون ومشاركتها.
-
-قواعد هامة:
-- لا تقم بطلب موقع المستخدم أو محاولة الوصول للخرائط.
-- ركز حصرياً على البيانات المحاسبية المتوفرة في السياق.
-- عند الحذف أو التعديل: ابحث عن العملية بالاسم والمبلغ.
-- تحدث بلهجة سوق يمنية محترمة ومختصرة جداً.
+تحدث بلهجة سوق يمنية محترمة ومختصرة جداً.
 `;
 
 export const aiTools: FunctionDeclaration[] = [
@@ -38,90 +34,6 @@ export const aiTools: FunctionDeclaration[] = [
         status: { type: Type.STRING, enum: ['نقدي', 'آجل'] }
       },
       required: ['customer_name', 'qat_type', 'quantity', 'unit_price', 'currency', 'status']
-    }
-  },
-  {
-    name: 'recordPurchase',
-    description: 'تسجيل عملية شراء بضاعة.',
-    parameters: {
-      type: Type.OBJECT,
-      properties: {
-        supplier_name: { type: Type.STRING },
-        qat_type: { type: Type.STRING },
-        quantity: { type: Type.NUMBER },
-        unit_price: { type: Type.NUMBER },
-        currency: { type: Type.STRING, enum: ['YER', 'SAR', 'OMR'] },
-        status: { type: Type.STRING, enum: ['نقدي', 'آجل'] }
-      },
-      required: ['supplier_name', 'qat_type', 'quantity', 'unit_price', 'currency', 'status']
-    }
-  },
-  {
-    name: 'recordVoucher',
-    description: 'تسجيل سند قبض أو دفع.',
-    parameters: {
-      type: Type.OBJECT,
-      properties: {
-        type: { type: Type.STRING, enum: ['قبض', 'دفع'] },
-        person_name: { type: Type.STRING },
-        amount: { type: Type.NUMBER },
-        currency: { type: Type.STRING, enum: ['YER', 'SAR', 'OMR'] },
-        notes: { type: Type.STRING }
-      },
-      required: ['type', 'person_name', 'amount', 'currency']
-    }
-  },
-  {
-    name: 'deleteTransaction',
-    description: 'حذف عملية سابقة (فاتورة أو سند).',
-    parameters: {
-      type: Type.OBJECT,
-      properties: {
-        record_type: { type: Type.STRING, enum: ['sale', 'purchase', 'voucher', 'expense'] },
-        person_name: { type: Type.STRING },
-        amount_hint: { type: Type.NUMBER, description: 'المبلغ التقريبي للعملية المراد حذفها' }
-      },
-      required: ['record_type', 'person_name']
-    }
-  },
-  {
-    name: 'updateTransaction',
-    description: 'تعديل بيانات عملية سابقة.',
-    parameters: {
-      type: Type.OBJECT,
-      properties: {
-        record_type: { type: Type.STRING, enum: ['sale', 'purchase', 'voucher', 'expense'] },
-        person_name: { type: Type.STRING },
-        new_amount: { type: Type.NUMBER },
-        new_quantity: { type: Type.NUMBER },
-        new_notes: { type: Type.STRING }
-      },
-      required: ['record_type', 'person_name']
-    }
-  },
-  {
-    name: 'managePerson',
-    description: 'إضافة عميل أو مورد جديد.',
-    parameters: {
-      type: Type.OBJECT,
-      properties: {
-        type: { type: Type.STRING, enum: ['عميل', 'مورد'] },
-        name: { type: Type.STRING },
-        phone: { type: Type.STRING }
-      },
-      required: ['type', 'name']
-    }
-  },
-  {
-    name: 'shareStatement',
-    description: 'إرسال كشف حساب واتساب.',
-    parameters: {
-      type: Type.OBJECT,
-      properties: {
-        person_name: { type: Type.STRING },
-        person_type: { type: Type.STRING, enum: ['عميل', 'مورد'] }
-      },
-      required: ['person_name', 'person_type']
     }
   }
 ];
@@ -149,6 +61,9 @@ async function retryAI<T>(fn: () => Promise<T>, retries = 2, delay = 2000): Prom
 }
 
 export const getChatResponse = async (message: string, history: ChatMessage[], context: any) => {
+  const apiKey = process.env.API_KEY || (window as any).process?.env?.API_KEY;
+  if (!apiKey) throw new AppError("يرجى ضبط مفتاح API للذكاء الاصطناعي في الإعدادات.", "NO_API_KEY", 401, true);
+
   const ai = getAIClient();
   const ctxStr = `السياق: ${context.customers?.length} عملاء، ${context.suppliers?.length} موردين.`;
 
@@ -173,6 +88,9 @@ export const getChatResponse = async (message: string, history: ChatMessage[], c
 };
 
 export const getFinancialForecast = async (sales: Sale[], expenses: Expense[], categories: QatCategory[]) => {
+  const apiKey = process.env.API_KEY || (window as any).process?.env?.API_KEY;
+  if (!apiKey) return "الذكاء الاصطناعي غير مفعل حالياً.";
+
   const ai = getAIClient();
   try {
     const response = await ai.models.generateContent({

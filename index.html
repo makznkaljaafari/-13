@@ -14,8 +14,14 @@
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/628/628283.png">
     
+    <!-- Polyfill critical for Gemini and other libraries -->
     <script>
-      window.process = { env: { API_KEY: "" } };
+      window.process = { 
+        env: { 
+          API_KEY: "",
+          NODE_ENV: "production"
+        } 
+      };
     </script>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -36,10 +42,6 @@
               brandWarning: "#d97706",
               brandBgLight: "#f0f9ff",
               brandBgDark: "#020617",
-            },
-            spacing: {
-              'safe-top': 'var(--safe-area-inset-top)',
-              'safe-bottom': 'var(--safe-area-inset-bottom)',
             }
           }
         }
@@ -50,10 +52,8 @@
       :root {
         --color-background-page: #f0f9ff; 
         --color-background-card: #ffffff;
-        --color-background-input: #e0f2fe;
         --color-text-primary: #001e4d;
         --color-border-primary: #bae6fd;
-        --color-accent: #2563eb;
         --safe-area-inset-top: env(safe-area-inset-top, 0px);
         --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
       }
@@ -61,59 +61,73 @@
       .dark {
         --color-background-page: #020617;
         --color-background-card: #0f172a;
-        --color-background-input: #1e293b;
         --color-text-primary: #f8fafc;
         --color-border-primary: #334155;
-        --color-accent: #38bdf8;
       }
 
-      * { 
-        font-family: 'Tajawal', sans-serif; 
-        -webkit-tap-highlight-color: transparent; 
-        box-sizing: border-box;
-      }
-      
-      body { 
-        background-color: var(--color-background-page);
-        color: var(--color-text-primary);
-        min-height: 100vh;
-        padding-top: var(--safe-area-inset-top);
-        padding-bottom: var(--safe-area-inset-bottom);
-        overflow-x: hidden;
-      }
+      * { font-family: 'Tajawal', sans-serif; -webkit-tap-highlight-color: transparent; }
+      body { background-color: var(--color-background-page); color: var(--color-text-primary); margin: 0; }
 
-      .vibrant-card {
-        background-color: var(--color-background-card);
-        border: 2px solid var(--color-border-primary);
-        border-radius: 1.5rem;
-        box-shadow: 0 10px 15px -3px rgba(30, 58, 138, 0.05);
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
+      #html-loading-spinner {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+        background: #f0f9ff;
       }
+      .dark #html-loading-spinner { background: #020617; }
 
-      .vibrant-card:active { transform: scale(0.98); }
+      .spinner-box {
+        width: 60px;
+        height: 60px;
+        border: 6px solid #1e3a8a;
+        border-top-color: #2563eb;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+      @keyframes spin { to { transform: rotate(360deg); } }
 
-      .financial-table th {
+      /* Excel-like Table Styles */
+      .excel-table {
+        border-collapse: collapse;
+        width: 100%;
+        background: white;
+        border: 2px solid #1e3a8a;
+      }
+      .dark .excel-table { background: #0f172a; border-color: #334155; }
+
+      .excel-table th {
         background-color: #1e3a8a;
-        color: #ffffff;
+        color: white;
         font-weight: 900;
         text-align: center;
-        padding: 0.75rem;
-        border: 1px solid rgba(255,255,255,0.1);
+        padding: 12px 8px;
+        border: 1px solid rgba(255,255,255,0.2);
+        font-size: 11px;
+        text-transform: uppercase;
       }
       
-      .financial-table td {
-        border: 1px solid var(--color-border-primary);
-        padding: 0.75rem;
+      .excel-table td {
+        border: 1px solid #e2e8f0;
+        padding: 10px 8px;
         font-weight: 700;
+        font-size: 12px;
+        color: #1e293b;
       }
+      .dark .excel-table td { border-color: #334155; color: #f8fafc; }
+
+      .excel-table tr:nth-child(even) { background-color: #f1f5f9; }
+      .dark .excel-table tr:nth-child(even) { background-color: #1e293b; }
+
+      .cell-plus { background-color: #ecfdf5; color: #059669 !important; text-align: center; }
+      .cell-minus { background-color: #fef2f2; color: #dc2626 !important; text-align: center; }
+      .dark .cell-plus { background-color: rgba(5, 150, 105, 0.1); }
+      .dark .cell-minus { background-color: rgba(220, 38, 38, 0.1); }
 
       .no-scrollbar::-webkit-scrollbar { display: none; }
-      
-      @keyframes float {
-        0%, 100% { transform: translateY(0); }
-        50% { transform: translateY(-10px); }
-      }
-      .animate-float { animation: float 3s ease-in-out infinite; }
     </style>
 
 <script type="importmap">
@@ -133,10 +147,20 @@
 </head>
 <body>
     <div id="root"></div>
-    <div id="html-loading-spinner" class="flex flex-col items-center justify-center fixed inset-0 z-[9999] bg-brandBgLight dark:bg-brandBgDark">
-      <div class="w-16 h-16 border-8 border-brandPrimary border-t-brandSecondary rounded-full animate-spin"></div>
-      <p class="mt-4 font-black text-brandPrimary dark:text-brandSecondary text-xl">نظام الشويع المحاسبي</p>
+    
+    <div id="html-loading-spinner">
+      <div class="spinner-box"></div>
+      <p style="margin-top: 20px; font-weight: 900; color: #1e3a8a;">نظام الشويع المحاسبي</p>
     </div>
+
+    <script>
+      setTimeout(() => {
+        const spinner = document.getElementById('html-loading-spinner');
+        if (spinner) spinner.style.opacity = '0';
+        setTimeout(() => { if(spinner) spinner.remove(); }, 500);
+      }, 8000);
+    </script>
+    
     <script type="module" src="index.tsx"></script>
 </body>
 </html>

@@ -35,13 +35,13 @@ const Dashboard: React.FC = memo(() => {
     const totalExp = (expenses || []).filter(e => e.currency === cur).reduce((sum, e) => sum + e.amount, 0);
 
     return [
-      { category: 'الأصول النقدية', item: 'نقدية مبيعات المعرض', plus: cashSales, minus: 0, color: 'text-emerald-600' },
-      { category: 'الأصول النقدية', item: 'مقبوضات السندات (قبض)', plus: voucherReceipts, minus: 0, color: 'text-emerald-600' },
-      { category: 'الالتزامات النقدية', item: 'مشتريات نقدية مدفوعة', plus: 0, minus: cashPurchases, color: 'text-rose-600' },
-      { category: 'الالتزامات النقدية', item: 'مدفوعات السندات (دفع)', plus: 0, minus: voucherPayments, color: 'text-rose-600' },
-      { category: 'المصاريف', item: 'إجمالي المصاريف التشغيلية', plus: 0, minus: totalExp, color: 'text-rose-600' },
-      { category: 'المديونيات', item: 'ديون مستحقة لنا (عند العملاء)', plus: currentSummary.assets, minus: 0, color: 'text-blue-600' },
-      { category: 'المديونيات', item: 'ديون مستحقة علينا (للموردين)', plus: 0, minus: currentSummary.liabilities, color: 'text-amber-600' },
+      { item: 'نقدية مبيعات المعرض (كاش)', plus: cashSales, minus: 0 },
+      { item: 'سندات قبض نقدية (وارد)', plus: voucherReceipts, minus: 0 },
+      { item: 'مشتريات نقدية مدفوعة (صادر)', plus: 0, minus: cashPurchases },
+      { item: 'سندات دفع نقدية (صادر)', plus: 0, minus: voucherPayments },
+      { item: 'إجمالي المصاريف التشغيلية', plus: 0, minus: totalExp },
+      { item: 'مديونيات العملاء المستحقة (لنا)', plus: currentSummary.assets, minus: 0 },
+      { item: 'مديونيات الموردين المستحقة (علينا)', plus: 0, minus: currentSummary.liabilities },
     ];
   }, [sales, vouchers, purchases, expenses, activeCurrency, currentSummary]);
 
@@ -62,7 +62,7 @@ const Dashboard: React.FC = memo(() => {
       <InstallPWAButton />
       <div className="space-y-6 pb-24 w-full">
         
-        {/* بطاقة السيولة الرشيقة والمحسنة - تصميم Minimalist */}
+        {/* بطاقة السيولة */}
         <div 
           onClick={() => setShowFullDetails(true)}
           className="cursor-pointer bg-brandPrimary p-4 sm:p-5 rounded-[1.8rem] text-white shadow-xl relative overflow-hidden flex items-center justify-between border-b-4 border-brandSecondary active:scale-[0.98] transition-all group"
@@ -87,9 +87,8 @@ const Dashboard: React.FC = memo(() => {
                   >{cur}</button>
                 ))}
               </div>
-              <span className="text-[8px] font-black bg-brandSecondary/30 px-2 py-0.5 rounded-full">تفاصيل 📊</span>
+              <span className="text-[8px] font-black bg-brandSecondary/30 px-2 py-0.5 rounded-full">تفاصيل الجدول 📊</span>
            </div>
-           
            <div className="absolute right-0 top-0 w-32 h-32 bg-white/5 rounded-full blur-2xl group-hover:bg-white/10 transition-colors"></div>
         </div>
 
@@ -109,7 +108,6 @@ const Dashboard: React.FC = memo(() => {
           <QuickActionsGrid navigate={navigate} theme={resolvedTheme} />
         </div>
 
-        {/* الشارت المالي */}
         <div className="vibrant-card p-6 bg-white dark:bg-slate-900 border-2 border-brandPrimary/5">
            <div className="flex justify-between items-start mb-6">
               <div>
@@ -123,50 +121,83 @@ const Dashboard: React.FC = memo(() => {
         </div>
       </div>
 
-      {/* مودال تفاصيل السيولة (Excel Table) */}
+      {/* مودال تفاصيل السيولة - تصميم Excel المطور */}
       {showFullDetails && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white dark:bg-slate-900 w-full max-w-2xl max-h-[85vh] rounded-[2rem] shadow-2xl overflow-hidden flex flex-col border-2 border-brandPrimary">
-            <div className="p-5 bg-brandPrimary text-white flex justify-between items-center">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4 bg-slate-900/80 backdrop-blur-md animate-in fade-in">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-2xl max-h-[90vh] rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col border-4 border-brandPrimary">
+            
+            {/* رأس المودال */}
+            <div className="p-6 bg-brandPrimary text-white flex justify-between items-center">
               <div className="flex items-center gap-3">
-                <span className="text-2xl">📋</span>
-                <h3 className="font-black text-base">التفصيل الدقيق للميزانية ({activeCurrency})</h3>
+                <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center text-2xl">📋</div>
+                <div>
+                   <h3 className="font-black text-lg">تحليل الميزانية (Excel Mode)</h3>
+                   <p className="text-[9px] opacity-70 font-bold uppercase tracking-widest">Global Financial Balance • {activeCurrency}</p>
+                </div>
               </div>
-              <button onClick={() => setShowFullDetails(false)} className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center font-black">✕</button>
+              <button 
+                onClick={() => setShowFullDetails(false)} 
+                className="w-10 h-10 bg-white/10 hover:bg-rose-500 rounded-full flex items-center justify-center font-black transition-colors"
+              >✕</button>
             </div>
 
-            <div className="flex-1 overflow-auto p-4 no-scrollbar">
-              <table className="w-full text-right border-collapse financial-table text-xs">
+            {/* محتوى الجدول المنظم */}
+            <div className="flex-1 overflow-auto p-4 sm:p-6 no-scrollbar">
+              <table className="excel-table">
                 <thead>
                   <tr>
                     <th className="w-10">#</th>
-                    <th>البيان المالي</th>
-                    <th className="bg-emerald-600">إضافة (+)</th>
-                    <th className="bg-rose-600">خصم (-)</th>
+                    <th className="text-right">بيان العملية المالية</th>
+                    <th>إضافة (+)</th>
+                    <th>خصم (-)</th>
                   </tr>
                 </thead>
-                <tbody className="font-bold">
+                <tbody>
                   {detailedBreakdown.map((row, idx) => (
-                    <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-white/5">
-                      <td className="text-center opacity-30">{idx + 1}</td>
+                    <tr key={idx}>
+                      <td className="text-center opacity-40 tabular-nums">{idx + 1}</td>
                       <td className="text-brandPrimary dark:text-blue-300">{row.item}</td>
-                      <td className="text-center text-emerald-600 tabular-nums">{row.plus > 0 ? row.plus.toLocaleString() : '-'}</td>
-                      <td className="text-center text-rose-600 tabular-nums">{row.minus > 0 ? row.minus.toLocaleString() : '-'}</td>
+                      <td className={`cell-plus tabular-nums ${row.plus === 0 ? 'opacity-10' : ''}`}>
+                        {row.plus > 0 ? row.plus.toLocaleString() : '0'}
+                      </td>
+                      <td className={`cell-minus tabular-nums ${row.minus === 0 ? 'opacity-10' : ''}`}>
+                        {row.minus > 0 ? row.minus.toLocaleString() : '0'}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
                 <tfoot>
                   <tr className="bg-slate-900 text-white font-black">
-                    <td colSpan={2} className="p-4 text-center">الرصيد الصافي النهائي</td>
-                    <td colSpan={2} className="p-4 text-center text-xl tabular-nums">{currentSummary.net.toLocaleString()}</td>
+                    <td colSpan={2} className="p-5 text-center text-sm uppercase tracking-widest border-l border-white/10">الصافي الإجمالي ({activeCurrency})</td>
+                    <td colSpan={2} className="p-5 text-center text-2xl tabular-nums tracking-tighter">
+                      {currentSummary.net.toLocaleString()}
+                    </td>
                   </tr>
                 </tfoot>
               </table>
+
+              <div className="mt-6 flex items-center gap-3 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-2xl border border-blue-200 dark:border-blue-800">
+                 <span className="text-xl">💡</span>
+                 <p className="text-[10px] font-bold text-blue-800 dark:text-blue-300 leading-relaxed">
+                   هذا الجدول يوضح كافة التدفقات النقدية والديون النشطة. تم احتساب الصافي بناءً على (الكاش + مديونية العملاء - مديونية الموردين).
+                 </p>
+              </div>
             </div>
 
-            <div className="p-4 bg-slate-50 dark:bg-slate-800 border-t flex gap-3">
-              <button onClick={() => window.print()} className="flex-1 bg-slate-200 dark:bg-slate-700 p-3 rounded-xl font-black text-xs">🖨️ طباعة</button>
-              <button onClick={() => setShowFullDetails(false)} className="flex-[2] bg-brandPrimary text-white p-3 rounded-xl font-black text-xs shadow-lg">إغلاق التقرير ✅</button>
+            {/* أزرار التحكم */}
+            <div className="p-4 bg-slate-50 dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 flex gap-3">
+              <button 
+                onClick={() => window.print()} 
+                className="flex-1 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 text-slate-800 dark:text-white p-4 rounded-2xl font-black text-xs transition-all flex items-center justify-center gap-2"
+              >
+                <span>🖨️</span> طباعة التقرير
+              </button>
+              <button 
+                onClick={() => setShowFullDetails(false)} 
+                className="flex-[2] bg-brandPrimary hover:bg-brandSecondary text-white p-4 rounded-2xl font-black text-xs shadow-lg transition-all flex items-center justify-center gap-2"
+              >
+                <span>✅</span> إغلاق العرض
+              </button>
             </div>
           </div>
         </div>

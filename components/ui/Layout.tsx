@@ -47,11 +47,18 @@ export const PageLayout: React.FC<LayoutProps> = memo(({ title, headerExtra, chi
             <div className="flex items-center gap-2">
                <button 
                   onClick={() => setIsSearchOpen(true)}
-                  className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center text-lg text-white"
+                  title="بحث سريع"
+                  className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center text-lg text-white active:scale-90 transition-transform"
                >🔍</button>
                <button 
+                  onClick={() => navigate('settings')}
+                  title="الإعدادات"
+                  className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center text-lg text-white active:scale-90 transition-transform"
+               >⚙️</button>
+               <button 
                   onClick={toggleTheme} 
-                  className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center text-lg text-white"
+                  title="تغيير المظهر"
+                  className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center text-lg text-white active:scale-90 transition-transform"
                >{theme === 'dark' ? '☀️' : '🌙'}</button>
             </div>
           </div>

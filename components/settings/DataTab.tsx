@@ -35,7 +35,8 @@ export const DataTab = ({ localFormData, handleInputChange, lastBackupDate, isBa
   };
 
   return (
-    <div className="p-4 space-y-6">
+    <div className="p-2 space-y-6">
+      {/* Frequency Selection */}
       <div className="space-y-3">
         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">وتيرة النسخ الاحتياطي التلقائي</label>
         <div className="grid grid-cols-2 gap-3">
@@ -43,7 +44,7 @@ export const DataTab = ({ localFormData, handleInputChange, lastBackupDate, isBa
             <button
               key={freq.id}
               onClick={() => handleInputChange((p: any) => ({...p, accounting_settings: {...p.accounting_settings, backup_frequency: freq.id}}))}
-              className={`flex flex-col items-center gap-2 p-4 rounded-2xl border-2 transition-all ${localFormData.accounting_settings.backup_frequency === freq.id ? 'bg-indigo-600 text-white border-transparent' : 'bg-slate-50 dark:bg-white/5 border-transparent text-slate-400'}`}
+              className={`flex flex-col items-center gap-2 p-4 rounded-2xl border-2 transition-all duration-200 ${localFormData.accounting_settings.backup_frequency === freq.id ? 'bg-indigo-600 text-white border-transparent' : 'bg-slate-50 dark:bg-white/5 border-transparent text-slate-400'}`}
             >
               <span className="text-xl">{freq.icon}</span>
               <span className="font-black text-[10px]">{freq.label}</span>
@@ -52,21 +53,34 @@ export const DataTab = ({ localFormData, handleInputChange, lastBackupDate, isBa
         </div>
       </div>
 
-      <div className="p-4 rounded-2xl border-2 border-dashed border-indigo-500/20 bg-indigo-500/5 space-y-4">
-        <p className="text-[10px] text-indigo-500 font-bold tabular-nums">
-          {lastBackupDate ? `آخر نسخ: ${new Date(lastBackupDate).toLocaleString('ar-YE')}` : 'لم يتم النسخ بعد'}
-        </p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      {/* Manual Backup Actions - Static container height for stability */}
+      <div className="p-5 rounded-2xl border-2 border-dashed border-indigo-500/20 bg-indigo-500/5 space-y-4">
+        <div className="h-4"> {/* Placeholder for date to prevent shifting */}
+          {lastBackupDate && (
+            <p className="text-[10px] text-indigo-500 font-bold tabular-nums">
+              آخر نسخ: {new Date(lastBackupDate).toLocaleString('ar-YE')}
+            </p>
+          )}
+          {!lastBackupDate && <p className="text-[10px] text-slate-400 font-bold italic">لم يتم النسخ الاحتياطي بعد</p>}
+        </div>
+        
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
           <BaseButton variant="primary" icon="📥" onClick={runManualBackup} loading={isBackupLoading} className="w-full">تصدير نسخة</BaseButton>
           <BaseButton variant="secondary" icon="📂" onClick={() => fileInputRef.current?.click()} loading={isSyncing} className="w-full">استرجاع نسخة</BaseButton>
           <input type="file" ref={fileInputRef} className="hidden" accept=".json" onChange={handleFileRestore} />
         </div>
       </div>
 
-      <button onClick={handleClearCache} className="w-full border-2 border-rose-500/20 text-rose-500 p-4 rounded-2xl font-black text-xs flex justify-between hover:bg-rose-500/10 transition-colors">
-        <span>مسح ذاكرة الكاش 🗑️</span>
-        <span className="opacity-50">إصلاح المشاكل البرمجية</span>
-      </button>
+      {/* Advanced Actions */}
+      <div className="pt-4">
+        <button onClick={handleClearCache} className="w-full border-2 border-rose-500/20 text-rose-500 p-4 rounded-2xl font-black text-xs flex justify-between items-center hover:bg-rose-500/10 transition-colors">
+          <div className="flex items-center gap-2">
+            <span>🗑️</span>
+            <span>مسح ذاكرة الكاش</span>
+          </div>
+          <span className="text-[8px] opacity-60 font-bold uppercase tracking-widest bg-rose-500/10 px-2 py-1 rounded-md">إصلاح المشاكل</span>
+        </button>
+      </div>
     </div>
   );
 };
