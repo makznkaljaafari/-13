@@ -9,8 +9,8 @@
       "destination": "/$1/$2"
     },
     {
-      "source": "/(.*\\.(tsx|ts|js|json|png|jpg|svg|css|html))",
-      "destination": "/$1"
+      "source": "/:path*.:ext(tsx|ts|js|json|png|jpg|svg|css|html)",
+      "destination": "/:path*.:ext"
     },
     {
       "source": "/(.*)",

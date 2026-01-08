@@ -34,19 +34,20 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
   // استخدام ErrorInfo من React لضمان صحة أنواع المدخلات
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error('React Error Boundary caught an error:', error, errorInfo);
-    // Fix: Now setState is correctly inherited from React.Component and available on 'this'.
-    this.setState({ errorInfo });
+    // Fix: Using functional setState to ensure correct type inference for 'this.setState'.
+    this.setState((prevState) => ({ ...prevState, errorInfo }));
   }
 
   handleReset = () => {
     // إعادة تعيين الحالة للسماح للمستخدم بإعادة تشغيل التطبيق
-    // Fix: Now setState is correctly inherited from React.Component and available on 'this'.
-    this.setState({ hasError: false, error: undefined, errorInfo: undefined });
+    // Fix: Using functional setState to ensure correct type inference for 'this.setState'.
+    this.setState((prevState) => ({ ...prevState, hasError: false, error: undefined, errorInfo: undefined }));
     window.location.href = '/'; 
   };
 
   render() {
     // التحقق من وجود خطأ في الحالة المورثة
+    // Fix: Accessing children via 'this.props', which is correctly recognized due to React.Component inheritance.
     if (this.state.hasError) {
       return (
         <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950 p-6 text-right" dir="rtl">
@@ -89,7 +90,6 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
       );
     }
 
-    // Fix: Accessing children via 'this.props', which is now correctly recognized as inherited from React.Component.
     return this.props.children;
   }
 }
