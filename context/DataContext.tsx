@@ -14,10 +14,9 @@ import { useBackup } from '../hooks/useBackup';
 const DataContext = createContext<any>(undefined);
 
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { setNotifications, addNotification, isOnline } = useUI();
+  const { setNotifications, addNotification, isOnline, setIsSyncing, isSyncing } = useUI();
   const { user, setUser } = useAuth();
   const [isDataLoaded, setIsDataLoaded] = useState(false);
-  const [isSyncing, setIsSyncing] = useState(false);
   
   const inv = useInventory();
   const bus = useBusiness();
@@ -74,7 +73,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setIsSyncing(false);
       dataService.updateOfflineQueueCount(); 
     }
-  }, [setUser, setNotifications, addNotification, isOnline, inv, bus, fin, sys]);
+  }, [setUser, setNotifications, addNotification, isOnline, inv, bus, fin, sys, setIsSyncing]);
 
   // Use the extracted backup hook
   const dataForBackup = useMemo(() => ({
@@ -97,7 +96,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } finally {
       setIsSyncing(false);
     }
-  }, [user?.id, loadAllData, addNotification]);
+  }, [user?.id, loadAllData, addNotification, setIsSyncing]);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {

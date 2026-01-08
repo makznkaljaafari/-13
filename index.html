@@ -13,8 +13,6 @@
     
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/628/628283.png">
-    <!-- Fix: Added favicon link to prevent 404 and ensure proper icon display -->
-    <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/628/628283.png" type="image/png">
     
     <!-- Babel Standalone لترجمة TSX في المتصفح -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -28,14 +26,18 @@
         }
       };
 
+      // وظيفة لإخفاء شاشة التحميل قسراً في حال حدوث خطأ برمجي
       window.forceHideSpinner = function() {
         const spinner = document.getElementById('html-loading-spinner');
         if (spinner) {
           spinner.style.opacity = '0';
-          setTimeout(() => { spinner.style.display = 'none'; }, 500);
+          setTimeout(() => {
+            spinner.style.display = 'none';
+          }, 500);
         }
       };
 
+      // إذا استغرق التحميل أكثر من 12 ثانية، اخفِ الشاشة السوداء لإظهار الخطأ الحقيقي
       setTimeout(window.forceHideSpinner, 12000);
     </script>
 
@@ -107,11 +109,13 @@
 <body>
     <div id="root"></div>
     
+    <!-- شاشة تحميل HTML بسيطة تظهر قبل تشغيل React -->
     <div id="html-loading-spinner">
       <div class="spinner-box"></div>
       <p style="margin-top: 20px; font-weight: 800; color: #1e3a8a; font-size: 14px;">جاري تشغيل محرك الشويع الذكي...</p>
     </div>
 
+    <!-- تشغيل التطبيق باستخدام Babel للتعامل مع TSX في المتصفح -->
     <script type="text/babel" data-type="module" data-presets="react,typescript" src="index.tsx"></script>
 </body>
 </html>

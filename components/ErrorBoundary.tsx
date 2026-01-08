@@ -11,43 +11,28 @@ interface ErrorBoundaryState {
   errorInfo?: any;
 }
 
-// Fix: Explicitly use React.Component in the extends clause to ensure correct TypeScript inference.
-class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
-  // Fix: Explicitly define the 'state' property with its interface to ensure correct typing within instance methods.
+class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   public state: ErrorBoundaryState = {
     hasError: false,
     error: undefined,
     errorInfo: undefined
   };
 
-  constructor(props: ErrorBoundaryProps) {
-    super(props);
-  }
-
   static getDerivedStateFromError(error: Error): ErrorBoundaryState {
     return { hasError: true, error };
   }
 
-  // استخدام ErrorInfo من React لضمان صحة أنواع المدخلات
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error('React Error Boundary caught an error:', error, errorInfo);
-    // Fix: Using functional setState to ensure correct type inference for 'this.setState'.
-    // FIX: Explicitly cast 'this' to React.Component to resolve type inference issues.
-    (this as React.Component<ErrorBoundaryProps, ErrorBoundaryState>).setState((prevState) => ({ ...prevState, errorInfo }));
+    this.setState({ errorInfo });
   }
 
   handleReset = () => {
-    // إعادة تعيين الحالة للسماح للمستخدم بإعادة تشغيل التطبيق
-    // Fix: Using functional setState to ensure correct type inference for 'this.setState'.
-    // FIX: Explicitly cast 'this' to React.Component to resolve type inference issues.
-    (this as React.Component<ErrorBoundaryProps, ErrorBoundaryState>).setState((prevState) => ({ ...prevState, hasError: false, error: undefined, errorInfo: undefined }));
+    this.setState({ hasError: false, error: undefined, errorInfo: undefined });
     window.location.href = '/'; 
   };
 
   render() {
-    // التحقق من وجود خطأ في الحالة المورثة
-    // Fix: Accessing children via 'this.props', which is correctly recognized due to React.Component inheritance.
-    // FIX: Explicitly cast 'this' to React.Component to resolve type inference issues.
     if (this.state.hasError) {
       return (
         <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950 p-6 text-right" dir="rtl">
@@ -90,7 +75,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
       );
     }
 
-    return (this as React.Component<ErrorBoundaryProps, ErrorBoundaryState>).props.children;
+    return this.props.children;
   }
 }
 

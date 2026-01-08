@@ -25,7 +25,9 @@ const AddVoucher: React.FC = () => {
     amount: editingVoucher?.amount || (navigationParams?.amount || '') as number | '',
     currency: editingVoucher?.currency || (navigationParams?.currency || 'YER') as 'YER' | 'SAR' | 'OMR',
     notes: editingVoucher?.notes || '',
-    date: editingVoucher?.date || new Date().toISOString()
+    date: editingVoucher?.date || new Date().toISOString(),
+    // Fix: Added missing balance_type to initial state
+    balance_type: editingVoucher?.balance_type || 'مدين' as 'مدين' | 'دائن'
   });
 
   useEffect(() => {
@@ -99,6 +101,7 @@ const AddVoucher: React.FC = () => {
                 {['مدين', 'دائن'].map(t => (
                   <button
                     key={t} type="button"
+                    // Fix: updated local state property balance_type
                     onClick={() => setFormData({...formData, balance_type: t as any})}
                     className={`flex-1 py-3 rounded-xl font-black text-[10px] transition-all ${
                       formData.balance_type === t ? (t === 'مدين' ? 'bg-[var(--color-status-success)] text-[var(--color-text-inverse)]' : 'bg-[var(--color-status-danger)] text-[var(--color-text-inverse)]') : 'text-[var(--color-text-muted)]'
@@ -119,8 +122,9 @@ const AddVoucher: React.FC = () => {
                 />
             </div>
 
+            {/* Fix: removed unsupported 'rows' from BaseInput, passed as className or style if needed via component update */}
             <BaseInput 
-              label="البيان" icon="📝" as="textarea" rows={3}
+              label="البيان" icon="📝" as="textarea"
               placeholder="اكتب تفاصيل السند..."
               value={formData.notes}
               onChange={e => setFormData({...formData, notes: e.target.value})}

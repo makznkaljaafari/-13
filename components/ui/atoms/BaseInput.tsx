@@ -6,6 +6,7 @@ interface BaseInputProps extends React.InputHTMLAttributes<HTMLInputElement | HT
   icon?: string;
   error?: string;
   as?: 'input' | 'textarea';
+  rows?: number; // Added explicitly to allow textarea rows
 }
 
 /**

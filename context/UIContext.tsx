@@ -15,6 +15,8 @@ interface UIContextType {
   isSidebarCollapsed: boolean;
   feedbackType: 'celebration' | 'debt' | null;
   isOnline: boolean;
+  // Added isSyncing to UIContextType
+  isSyncing: boolean;
   offlineQueueCount: number;
   installPrompt: any;
   isVoiceActive: boolean; 
@@ -30,6 +32,8 @@ interface UIContextType {
   triggerFeedback: (type: 'celebration' | 'debt') => void;
   promptInstall: () => void;
   setIsVoiceActive: (active: boolean) => void; 
+  // Added setter for isSyncing
+  setIsSyncing: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 const UIContext = createContext<UIContextType | undefined>(undefined);
@@ -47,6 +51,8 @@ export const UIProvider: React.FC<{ children: React.ReactNode }> = ({ children }
   const [offlineQueueCount, setOfflineQueueCount] = useState(0);
   const [installPrompt, setInstallPrompt] = useState<any>(null);
   const [isVoiceActive, setIsVoiceActive] = useState(false);
+  // Added isSyncing state
+  const [isSyncing, setIsSyncing] = useState(false);
 
   const navigate = useCallback((p: Page, params?: any) => {
     setCurrentPage(p);
@@ -178,9 +184,9 @@ export const UIProvider: React.FC<{ children: React.ReactNode }> = ({ children }
   }, [addNotification]);
 
   const value = useMemo(() => ({
-    currentPage, navigationParams, theme, resolvedTheme, activeToasts, notifications, isSidebarCollapsed, feedbackType, isOnline, offlineQueueCount, installPrompt, isVoiceActive,
-    navigate, setTheme, toggleTheme, toggleSidebar, addNotification, removeToast, markNotificationsAsRead, deleteAllOldNotifications, setNotifications, triggerFeedback, promptInstall, setIsVoiceActive
-  }), [currentPage, navigationParams, theme, resolvedTheme, activeToasts, notifications, isSidebarCollapsed, feedbackType, isOnline, offlineQueueCount, installPrompt, isVoiceActive, navigate, setTheme, toggleTheme, toggleSidebar, addNotification, removeToast, markNotificationsAsRead, deleteAllOldNotifications, setNotifications, triggerFeedback, promptInstall, setIsVoiceActive]);
+    currentPage, navigationParams, theme, resolvedTheme, activeToasts, notifications, isSidebarCollapsed, feedbackType, isOnline, offlineQueueCount, installPrompt, isVoiceActive, isSyncing,
+    navigate, setTheme, toggleTheme, toggleSidebar, addNotification, removeToast, markNotificationsAsRead, deleteAllOldNotifications, setNotifications, triggerFeedback, promptInstall, setIsVoiceActive, setIsSyncing
+  }), [currentPage, navigationParams, theme, resolvedTheme, activeToasts, notifications, isSidebarCollapsed, feedbackType, isOnline, offlineQueueCount, installPrompt, isVoiceActive, isSyncing, navigate, setTheme, toggleTheme, toggleSidebar, addNotification, removeToast, markNotificationsAsRead, deleteAllOldNotifications, setNotifications, triggerFeedback, promptInstall, setIsVoiceActive, setIsSyncing]);
 
   return <UIContext.Provider value={value}>{children}</UIContext.Provider>;
 };
