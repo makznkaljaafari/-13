@@ -1,4 +1,5 @@
-import React, { ErrorInfo, ReactNode } from 'react';
+
+import React, { Component, ErrorInfo, ReactNode } from 'react';
 
 interface ErrorBoundaryProps {
   children?: ReactNode;
@@ -15,7 +16,7 @@ interface ErrorBoundaryState {
  * تم تحديثه لضمان التعرف الصحيح على الخصائص المورثة (setState, props) في TypeScript.
  */
 // Fix: Use explicit React.Component inheritance to ensure that base class methods like 'setState' and properties like 'props' are correctly recognized by the TypeScript compiler.
-class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
+class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   // Fix: Explicitly define the 'state' property with its interface to ensure correct typing within instance methods.
   public state: ErrorBoundaryState = {
     hasError: false,

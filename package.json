@@ -14,6 +14,6 @@
   },
   "scripts": {
     "start": "serve .",
-    "build": "mkdir -p public && cp index.html manifest.json metadata.json sw.js robots.txt public/ 2>/dev/null || true"
+    "build": "mkdir -p public && cp index.html manifest.json metadata.json sw.js robots.txt index.tsx public/ 2>/dev/null || true"
   }
 }
